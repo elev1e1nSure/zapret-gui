@@ -5591,7 +5591,7 @@ dependencies = [
 
 [[package]]
 name = "zapret-gui"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "include_dir",
  "reqwest 0.12.28",
