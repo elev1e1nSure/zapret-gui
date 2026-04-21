@@ -1,81 +1,154 @@
-use tauri::{AppHandle, Manager, path::BaseDirectory};
-use std::process::Command;
+use reqwest::Client;
 use std::os::windows::process::CommandExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
+use tauri::{path::BaseDirectory, AppHandle, Manager, State};
 
-// Windows flag to prevent opening a console window
+struct AppState {
+    cancel_discovery: Arc<AtomicBool>,
+}
+
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 /// Helper function to strip UNC prefix (\\?\) which CMD.exe doesn't support
 fn clean_unc_path(path: &Path) -> String {
     let path_str = path.to_string_lossy();
-    if path_str.starts_with(r"\\?\") {
-        path_str[4..].to_string()
+    if let Some(stripped) = path_str.strip_prefix(r"\\?\") {
+        stripped.to_string()
     } else {
         path_str.into_owned()
     }
 }
 
-#[tauri::command]
-async fn run_batch(handle: AppHandle, name: String) -> Result<(), String> {
-    // 1. Resolve path to engine file in resources
-    let resource_path = handle.path().resolve(format!("engine/{}", name), BaseDirectory::Resource)
-        .map_err(|e| format!("Could not resolve resource path: {}", e))?;
-
-    // 2. Fallback to dev path if resource doesn't exist (common during development)
-    let final_path = if !resource_path.exists() {
-        let cwd = std::env::current_dir().map_err(|e| format!("Could not get current dir: {}", e))?;
-        let dev_path = if cwd.ends_with("src-tauri") {
-            cwd.join("engine").join(&name)
-        } else {
-            cwd.join("src-tauri").join("engine").join(&name)
-        };
-        
-        if !dev_path.exists() {
-            return Err(format!("Batch file not found in resources or dev path: {}", name));
-        }
-        dev_path
-    } else {
-        resource_path
-    };
-
-    let parent_path = final_path.parent().ok_or("Resource path should have a parent")?;
+async fn check_connection() -> bool {
+    let client = Client::builder()
+        .timeout(Duration::from_secs(3))
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
+        .build()
+        .unwrap_or_else(|_| Client::new());
     
-    let clean_exec_path = clean_unc_path(&final_path);
-    let clean_working_dir = clean_unc_path(parent_path);
-
-    #[cfg(debug_assertions)]
-    {
-        println!("Executing: {}", clean_exec_path);
-        println!("Working Dir: {}", clean_working_dir);
+    let targets = [
+        "https://www.youtube.com/generate_204",
+        "https://discord.com/api/v9/gateway",
+        "https://rr1---sn-axmc5-n0se.googlevideo.com/generate_204"
+    ];
+    
+    let mut success_count = 0;
+    
+    for url in targets {
+        if let Ok(resp) = client.get(url).send().await {
+            // 200, 204 - success. 403 often returned by googlevideo, still means SNI works.
+            if resp.status().is_success() || resp.status().as_u16() == 403 {
+                success_count += 1;
+            }
+        }
     }
 
-    // Run the batch file directly with CREATE_NO_WINDOW.
+    success_count >= 2
+}
+
+#[tauri::command]
+async fn run_batch(handle: AppHandle, name: String) -> Result<(), String> {
+    let final_path = resolve_engine_path(&handle, &name)?;
+    execute_batch(&final_path)
+}
+
+fn resolve_engine_path(handle: &AppHandle, name: &str) -> Result<PathBuf, String> {
+    // 1. Resolve path to engine file in resources
+    let resource_path = handle.path().resolve(format!("engine/{}", name), BaseDirectory::Resource)
+        .map_err(|e| format!("Resource resolution error: {}", e))?;
+
+    if resource_path.exists() {
+        return Ok(resource_path);
+    }
+
+    // 2. Fallback to dev path if resource doesn't exist
+    let cwd = std::env::current_dir().map_err(|e| format!("Current dir error: {}", e))?;
+    let dev_path = if cwd.ends_with("src-tauri") {
+        cwd.join("engine").join(name)
+    } else {
+        cwd.join("src-tauri").join("engine").join(name)
+    };
+    
+    if dev_path.exists() {
+        Ok(dev_path)
+    } else {
+        Err(format!("Batch file not found: {}", name))
+    }
+}
+
+fn execute_batch(path: &Path) -> Result<(), String> {
+    let parent_path = path.parent().ok_or("Invalid engine path")?;
+    let clean_exec_path = clean_unc_path(path);
+    let clean_working_dir = clean_unc_path(parent_path);
+
     Command::new("cmd")
-        .args(&["/C", &clean_exec_path])
-        .current_dir(&clean_working_dir)
+        .args(["/C", &clean_exec_path])
+        .current_dir(clean_working_dir)
         .creation_flags(CREATE_NO_WINDOW)
         .spawn()
-        .map_err(|e| format!("Failed to start batch file: {}", e))?;
+        .map_err(|e| format!("Process spawn error: {}", e))?;
 
     Ok(())
 }
 
 #[tauri::command]
+async fn abort_auto_discovery(state: State<'_, AppState>) -> Result<(), String> {
+    state.cancel_discovery.store(true, Ordering::SeqCst);
+    let _ = stop_batch().await;
+    Ok(())
+}
+
+#[tauri::command]
+async fn run_auto_discovery(
+    handle: AppHandle, 
+    state: State<'_, AppState>,
+    strategies: Vec<String>
+) -> Result<String, String> {
+    state.cancel_discovery.store(false, Ordering::SeqCst);
+
+    for strategy in strategies {
+        if state.cancel_discovery.load(Ordering::SeqCst) {
+            return Err("Поиск отменен".to_string());
+        }
+
+        let _ = stop_batch().await;
+        let final_path = resolve_engine_path(&handle, &strategy)?;
+        
+        #[cfg(debug_assertions)]
+        println!("Testing: {}", strategy);
+        
+        if execute_batch(&final_path).is_err() {
+            continue;
+        }
+
+        // Wait with cancellation check
+        for _ in 0..30 {
+            if state.cancel_discovery.load(Ordering::SeqCst) {
+                let _ = stop_batch().await;
+                return Err("Поиск отменен".to_string());
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+
+        if check_connection().await {
+            return Ok(strategy);
+        }
+    }
+
+    Err("Ни одна стратегия не подошла".to_string())
+}
+
+#[tauri::command]
 async fn stop_batch() -> Result<(), String> {
-    // Kill the winws.exe process and its children
-    // Using taskkill /F /IM winws.exe /T ensures all instances are killed
-    let status = Command::new("cmd")
-        .args(&["/C", "taskkill /F /IM winws.exe /T >nul 2>&1"])
+    Command::new("cmd")
+        .args(["/C", "taskkill /F /IM winws.exe /T >nul 2>&1"])
         .creation_flags(CREATE_NO_WINDOW)
         .status()
-        .map_err(|e| format!("Failed to execute taskkill: {}", e))?;
-
-    if !status.success() {
-        // Taskkill returns non-zero if process not found, which is fine
-        #[cfg(debug_assertions)]
-        println!("Taskkill finished with status: {}", status);
-    }
+        .map_err(|e| format!("Taskkill error: {}", e))?;
 
     Ok(())
 }
@@ -83,17 +156,21 @@ async fn stop_batch() -> Result<(), String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(AppState {
+            cancel_discovery: Arc::new(AtomicBool::new(false)),
+        })
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![run_batch, stop_batch])
+        .invoke_handler(tauri::generate_handler![
+            run_batch, 
+            stop_batch, 
+            run_auto_discovery,
+            abort_auto_discovery
+        ])
         .setup(|app| {
-            let window = app.get_webview_window("main").unwrap();
-            
-            // На Windows убираем системные тени, которые создают прямоугольный контур
-            #[cfg(target_os = "windows")]
-            {
+            if let Some(window) = app.get_webview_window("main") {
+                #[cfg(target_os = "windows")]
                 let _ = window.set_shadow(false);
             }
-            
             Ok(())
         })
         .run(tauri::generate_context!())

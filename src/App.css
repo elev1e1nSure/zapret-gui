@@ -1,8 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap');
 
 /* БАЗОВЫЕ СТИЛИ (Прозрачность и шрифты) */
 :root {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Montserrat', sans-serif;
     background: transparent !important;
 }
 
@@ -31,7 +31,7 @@ html, body, #root {
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    padding: 5px 15px 20px 15px; /* Уменьшили отступы */
+    padding: 40px 15px; /* Сбалансированные верхние и нижние отступы */
     box-sizing: border-box;
     position: relative;
     overflow: hidden;
@@ -87,29 +87,29 @@ html, body, #root {
 .header {
     text-align: center;
     width: 100%;
-    margin-top: 30px; /* Уменьшили отступ сверху */
+    margin-top: 0; /* Убрали лишний отступ, теперь регулируется через padding окна */
     /* Нативная поддержка перетаскивания через CSS */
     -webkit-app-region: drag;
 }
 
 h1 {
     color: #f2f3f5; /* Белый Дискорда */
-    font-size: 22px; /* Уменьшили размер */
-    margin: 0 0 4px 0; /* Еще уменьшили отступ снизу */
-    font-weight: 600;
-    letter-spacing: 2.5px; /* Увеличили letter-spacing еще больше */
-    /* Текст не должен перехватывать события мыши, чтобы драг работал под ним */
+    font-size: 34px; 
+    margin: 0 0 2px 0; /* Подтянули статус максимально близко */
+    font-weight: 800; /* Более уверенный вес для Montserrat */
+    letter-spacing: 0.03em; /* Слегка увеличили интервал */
+    text-transform: uppercase; 
     pointer-events: none;
 }
 
 .status-text {
-    color: #dbdee1; /* Светло-серый для "остановлен" */
-    font-size: 13px; /* Уменьшили размер */
+    color: #dbdee1; 
+    font-size: 13px; /* Сделали чуть крупнее */
     margin: 0;
     transition: color 0.3s ease;
-    /* Текст не должен перехватывать события мыши */
+    font-weight: 300; /* Тонкий, но читаемый */
     pointer-events: none;
-    opacity: 0.9;
+    opacity: 0.8;
 }
 
 /* СОСТОЯНИЕ "ВКЛЮЧЕНО" (Акцентные цвета) */
@@ -123,12 +123,12 @@ h1 {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 10px 0; /* Добавили фиксированный небольшой отступ */
+    margin: 5px 0; /* Чуть уменьшили для компенсации размера кнопки */
 }
 
 .power-button {
-    width: 140px; /* Уменьшили кнопку (было 180) */
-    height: 140px;
+    width: 160px; /* Увеличили для баланса (было 130px) */
+    height: 160px;
     border-radius: 50%;
     background-color: #404249; /* Базовый серый кнопки */
     border: none; /* Убрали обводку для минимализма */
@@ -143,10 +143,10 @@ h1 {
 
 /* Иконка выключения */
 .power-icon {
-    width: 75px; /* Увеличили саму иконку внутри круга (было 60) */
-    height: 75px;
+    width: 85px; /* Увеличили пропорционально (было 75px) */
+    height: 85px;
     stroke: #b5bac1; /* Цвет иконки в выкл. состоянии */
-    stroke-width: 2.5; /* Сделали еще тоньше по запросу пользователя (было 3.5) */
+    stroke-width: 2.2; /* Еще чуть изящнее при большем размере */
     fill: none;
     transition: stroke 0.3s ease;
 }
@@ -167,14 +167,24 @@ h1 {
 /* Убрали эффект пульсации и свечение */
 
 /* ЭФФЕКТ ЗАГРУЗКИ ПРИ ПОДБОРЕ */
+.power-button.loading {
+    cursor: pointer;
+    background-color: #404249;
+}
+
+/* МИНИМАЛИСТИЧНЫЙ СПИННЕР */
+.spinner {
+    width: 85px;
+    height: 85px;
+    border: 4px solid transparent;
+    border-top: 4px solid #b5bac1;
+    border-radius: 50%;
+    animation: spin 1.2s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
+}
+
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
-}
-
-.power-button.loading {
-    cursor: wait;
-    background-color: #4f545c;
 }
 
 .power-button:disabled {
@@ -184,49 +194,49 @@ h1 {
 /* СТИЛИ ДЛЯ ВЫБОРА СТРАТЕГИИ */
 .strategy-container {
     width: 100%;
-    margin-bottom: 25px; /* Уменьшили нижний отступ */
+    margin-bottom: 0; /* Убрали лишний отступ, теперь регулируется через padding окна */
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     z-index: 50;
-    margin-top: 0; /* Убрали отрицательный отступ */
+    margin-top: 0;
 }
 
 .strategy-select {
     width: auto;
-    background-color: transparent;
-    border-radius: 4px;
-    padding: 2px 6px;
+    background-color: #313338; /* Вернули холодный Discord */
+    border-radius: 12px; /* Чуть увеличили радиус для массивности */
+    padding: 14px 28px; /* Увеличили padding (1.5x) */
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px; /* Увеличили отступ между текстом и стрелкой до 10px (был 4px) */
-    transition: all 0.2s ease;
+    gap: 16px; /* Увеличили gap (1.5x) */
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
+    border: none;
 }
 
-.strategy-select:hover:not([style*="not-allowed"]) {
-    background-color: transparent;
-    border-color: transparent;
+.strategy-select:hover:not(.open):not([style*="default"]) {
+    background-color: #383a40; /* Холодное осветление */
 }
 
 .strategy-select.open {
-    background-color: transparent;
+    background-color: #3f4147;
 }
 
 .selected-label {
-    color: #4f545c; /* Базовый тусклый цвет */
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 1px; /* Вернули нормальный letter-spacing */
+    color: #b5bac1; /* Сделали светлее по умолчанию */
+    font-size: 18px; /* Увеличили шрифт (1.5x) */
+    font-weight: 600; /* Чуть жирнее для массивности */
+    text-transform: none; /* Убрали капс для современности */
+    letter-spacing: -0.02em;
     transition: color 0.2s ease;
 }
 
 .chevron-icon {
-    width: 12px;
-    height: 12px;
+    width: 18px; /* Увеличили иконку (1.5x) */
+    height: 18px;
     color: #4f545c; /* Базовый тусклый цвет */
     transition: all 0.2s ease;
 }
@@ -248,14 +258,14 @@ h1 {
 
 .strategy-dropdown {
     position: absolute;
-    bottom: 25px; /* Выпадает вверх прямо над текстом */
-    width: 200px;
+    bottom: 60px; /* Подняли выше из-за увеличившейся кнопки */
+    width: 240px; /* Чуть шире под новую кнопку */
     max-height: 180px;
     overflow-y: auto;
-    background-color: #313338;
+    background-color: #313338; /* Холодный Discord */
     border-radius: 8px;
     padding: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* Уменьшили интенсивность тени */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); 
     border: 1px solid rgba(255, 255, 255, 0.05);
     
     /* Анимация появления и исчезновения */

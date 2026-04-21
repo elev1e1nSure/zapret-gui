@@ -9,34 +9,14 @@ function App() {
   const [isActive, setIsActive] = useState(false);
   const [status, setStatus] = useState("Zapret готов к запуску");
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedStrategy, setSelectedStrategy] = useState("general (ALT)_silent.bat");
+  const [showLoadingUI, setShowLoadingUI] = useState(false);
+  const [selectedStrategy, setSelectedStrategy] = useState("auto");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [activeStrategyLabel, setActiveStrategyLabel] = useState("");
+  const [dots, setDots] = useState("");
 
   const dropdownRef = useRef(null);
   const activeItemRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    if (isDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      // Прокрутка к активному элементу при открытии
-      if (activeItemRef.current) {
-        activeItemRef.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      }
-    } else {
-      document.removeEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isDropdownOpen]);
+  const abortControllerRef = useRef(false);
 
   const strategies = [
     { label: "Автоподбор", value: "auto" },
@@ -61,13 +41,72 @@ function App() {
     { label: "Simple Fake ALT 2", value: "general (SIMPLE FAKE ALT2)_silent.bat" },
   ];
 
+  const activeStrategyLabel = strategies.find(s => s.value === selectedStrategy)?.label || "Custom";
+
+  useEffect(() => {
+    if (!isLoading) {
+      setShowLoadingUI(false);
+      return;
+    }
+
+    if (selectedStrategy === "auto") {
+      setShowLoadingUI(true);
+      return;
+    }
+
+    const timeout = setTimeout(() => setShowLoadingUI(true), 500);
+    return () => clearTimeout(timeout);
+  }, [isLoading, selectedStrategy]);
+
+  useEffect(() => {
+    if (showLoadingUI && status.startsWith("Подбор стратегии")) {
+      const interval = setInterval(() => {
+        setDots(prev => (prev.length >= 3 ? "." : prev + "."));
+      }, 800);
+      return () => clearInterval(interval);
+    }
+    setDots("");
+  }, [showLoadingUI, status]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      activeItemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isDropdownOpen]);
+
+  const abortDiscovery = async () => {
+    console.log("Aborting auto discovery...");
+    abortControllerRef.current = true;
+    try {
+      await invoke("abort_auto_discovery");
+    } catch (error) {
+      console.error("Failed to abort:", error);
+    }
+    setIsLoading(false);
+    setShowLoadingUI(false);
+    setStatus("Поиск прерван");
+  };
+
   const toggleService = async () => {
+    if (isLoading) {
+      await abortDiscovery();
+      return;
+    }
+
     if (isActive) {
       setIsLoading(true);
       try {
         await invoke("stop_batch");
         setIsActive(false);
-        setActiveStrategyLabel("");
         setStatus("Zapret остановлен");
       } catch (error) {
         console.error("Failed to stop batch:", error);
@@ -79,23 +118,41 @@ function App() {
     }
 
     setIsLoading(true);
+    abortControllerRef.current = false;
     
     try {
-      await invoke("run_batch", { name: selectedStrategy });
-      setIsActive(true);
-      const label = strategies.find(s => s.value === selectedStrategy)?.label || "Custom";
-      setActiveStrategyLabel(label);
-      setStatus(`${label} запущен`);
+      if (selectedStrategy === "auto") {
+        setStatus("Подбор стратегии");
+        const strategyValues = strategies
+          .filter(s => s.value !== "auto")
+          .map(s => s.value);
+        
+        const bestStrategy = await invoke("run_auto_discovery", { strategies: strategyValues });
+        
+        if (!abortControllerRef.current) {
+          setSelectedStrategy(bestStrategy);
+          setIsActive(true);
+          const label = strategies.find(s => s.value === bestStrategy)?.label || "Custom";
+          setStatus(`${label} подобран`);
+        }
+      } else {
+        await invoke("run_batch", { name: selectedStrategy });
+        setIsActive(true);
+        setStatus(`${activeStrategyLabel} запущен`);
+      }
     } catch (error) {
-      console.error("Failed to run batch:", error);
-      setStatus(`Ошибка: ${error}`);
+      if (!abortControllerRef.current && error !== "Поиск отменен") {
+        console.error("Run error:", error);
+        setIsActive(false);
+        setStatus(`Ошибка: ${error}`);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handlePointerDown = (e) => {
-    // Check if we are left-clicking on a drag region but NOT on a button or dropdown
+    // Drag only on specific regions
     if (e.buttons === 1 && 
         !e.target.closest(".titlebar-button") && 
         !e.target.closest(".power-button") &&
@@ -111,7 +168,7 @@ function App() {
 
   return (
     <div 
-      className={`app-window ${isActive ? "active" : ""} ${isLoading ? "detecting" : ""}`} 
+      className={`app-window ${isActive ? "active" : ""} ${showLoadingUI ? "detecting" : ""}`} 
       id="appWindow"
     >
       {/* Custom Titlebar */}
@@ -145,27 +202,30 @@ function App() {
       >
         <h1 data-tauri-drag-region>Zapret</h1>
         <p className="status-text" id="statusText" data-tauri-drag-region>
-          {status}
+          {status}{dots}
         </p>
       </div>
 
       <div className="power-button-container">
         <button 
-          className={`power-button ${isLoading ? "loading" : ""}`} 
+          className={`power-button ${showLoadingUI ? "loading" : ""}`} 
           id="powerBtn" 
           onClick={toggleService}
-          disabled={isLoading}
         >
-          <svg
-            className="power-icon"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
-            <line x1="12" y1="2" x2="12" y2="12"></line>
-          </svg>
+          {showLoadingUI ? (
+            <div className="spinner"></div>
+          ) : (
+            <svg
+              className="power-icon"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+              <line x1="12" y1="2" x2="12" y2="12"></line>
+            </svg>
+          )}
         </button>
       </div>
 
