@@ -1,3 +1,4 @@
+use include_dir::{include_dir, Dir};
 use reqwest::Client;
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
@@ -5,7 +6,9 @@ use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{path::BaseDirectory, AppHandle, Manager, State};
+use tauri::{AppHandle, Manager, State};
+
+static ENGINE_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/engine");
 
 struct AppState {
     cancel_discovery: Arc<AtomicBool>,
@@ -56,27 +59,35 @@ async fn run_batch(handle: AppHandle, name: String) -> Result<(), String> {
     execute_batch(&final_path)
 }
 
-fn resolve_engine_path(handle: &AppHandle, name: &str) -> Result<PathBuf, String> {
-    // 1. Resolve path to engine file in resources
-    let resource_path = handle.path().resolve(format!("engine/{}", name), BaseDirectory::Resource)
-        .map_err(|e| format!("Resource resolution error: {}", e))?;
+fn extract_engine(handle: &AppHandle) -> Result<PathBuf, String> {
+    let app_local_data = handle
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| format!("Failed to get app local data dir: {}", e))?;
+    let engine_dir = app_local_data.join("engine");
 
-    if resource_path.exists() {
-        return Ok(resource_path);
+    if !engine_dir.exists() {
+        std::fs::create_dir_all(&engine_dir)
+            .map_err(|e| format!("Failed to create engine directory: {}", e))?;
+        ENGINE_DIR
+            .extract(&engine_dir)
+            .map_err(|e| format!("Failed to extract engine: {}", e))?;
     }
 
-    // 2. Fallback to dev path if resource doesn't exist
-    let cwd = std::env::current_dir().map_err(|e| format!("Current dir error: {}", e))?;
-    let dev_path = if cwd.ends_with("src-tauri") {
-        cwd.join("engine").join(name)
+    Ok(engine_dir)
+}
+
+fn resolve_engine_path(handle: &AppHandle, name: &str) -> Result<PathBuf, String> {
+    let engine_dir = extract_engine(handle)?;
+    let target_path = engine_dir.join(name);
+
+    if target_path.exists() {
+        Ok(target_path)
     } else {
-        cwd.join("src-tauri").join("engine").join(name)
-    };
-    
-    if dev_path.exists() {
-        Ok(dev_path)
-    } else {
-        Err(format!("Batch file not found: {}", name))
+        Err(format!(
+            "Файл не найден в извлеченном движке: {}. Путь: {:?}",
+            name, target_path
+        ))
     }
 }
 

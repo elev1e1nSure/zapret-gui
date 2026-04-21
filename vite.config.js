@@ -28,4 +28,12 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+  build: {
+    // 1. Minify code
+    minify: "terser",
+    // 2. Do not generate source maps for production
+    sourcemap: false,
+    // 3. Ensure target is high enough for optimizations
+    target: "esnext",
+  },
 }));
