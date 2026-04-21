@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "zapret-app",
+  "version": "0.1.0",
+  "identifier": "com.elev1.zapret-app",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "resources": ["engine/**/*"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "wix": {
+        "language": ["ru-RU", "en-US"]
+      },
+      "nsis": {
+        "languages": ["Russian", "English"]
+      }
+    }
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Zapret",
+        "width": 280,
+        "height": 400,
+        "resizable": false,
+        "fullscreen": false,
+        "maximizable": false,
+        "decorations": false,
+        "transparent": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}

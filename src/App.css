@@ -1,0 +1,292 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+
+/* БАЗОВЫЕ СТИЛИ (Прозрачность и шрифты) */
+:root {
+    font-family: 'JetBrains Mono', monospace;
+    background: transparent !important;
+}
+
+html, body, #root {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    width: 100vw;
+    background: transparent !important;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    user-select: none; /* Отключить выделение текста */
+    /* Убираем любые возможные системные обводки */
+    border: none;
+}
+
+/* КОНТЕЙНЕР ПРИЛОЖЕНИЯ (Центральная карточка) */
+.app-window {
+    width: 100vw;
+    height: 100vh;
+    background-color: #2b2d31; /* Цвет фона Discord */
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 15px 20px 15px; /* Уменьшили отступы */
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+}
+
+/* CUSTOM TITLEBAR */
+.titlebar {
+    height: 32px; /* Уменьшили высоту тайтлбара */
+    background: transparent;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    user-select: none;
+    z-index: 100;
+    /* Нативная поддержка перетаскивания через CSS */
+    -webkit-app-region: drag;
+}
+
+.titlebar-drag-region {
+    flex-grow: 1;
+    height: 100%;
+    background: transparent;
+}
+
+.titlebar-button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 42px; /* Увеличили ширину кнопок (было 35) */
+    height: 32px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #b5bac1;
+    font-family: Arial, sans-serif;
+    font-size: 20px; /* Увеличили размер символов (было 16) */
+    /* Кнопки НЕ должны перетаскивать окно */
+    -webkit-app-region: no-drag;
+}
+
+.titlebar-button:hover {
+    color: #ffffff;
+}
+
+.titlebar-button#titlebar-close:hover {
+    color: #ed4245; /* Красный при наведении на закрытие */
+}
+
+/* ЗАГОЛОВОК И СТАТУС */
+.header {
+    text-align: center;
+    width: 100%;
+    margin-top: 30px; /* Уменьшили отступ сверху */
+    /* Нативная поддержка перетаскивания через CSS */
+    -webkit-app-region: drag;
+}
+
+h1 {
+    color: #f2f3f5; /* Белый Дискорда */
+    font-size: 22px; /* Уменьшили размер */
+    margin: 0 0 4px 0; /* Еще уменьшили отступ снизу */
+    font-weight: 600;
+    letter-spacing: 2.5px; /* Увеличили letter-spacing еще больше */
+    /* Текст не должен перехватывать события мыши, чтобы драг работал под ним */
+    pointer-events: none;
+}
+
+.status-text {
+    color: #dbdee1; /* Светло-серый для "остановлен" */
+    font-size: 13px; /* Уменьшили размер */
+    margin: 0;
+    transition: color 0.3s ease;
+    /* Текст не должен перехватывать события мыши */
+    pointer-events: none;
+    opacity: 0.9;
+}
+
+/* СОСТОЯНИЕ "ВКЛЮЧЕНО" (Акцентные цвета) */
+.app-window.active .status-text {
+    color: #E0E0E0; /* Мягкий белый для читаемости */
+}
+
+/* ГЛАВНАЯ АНИМИРОВАННАЯ КНОПКА */
+.power-button-container {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 10px 0; /* Добавили фиксированный небольшой отступ */
+}
+
+.power-button {
+    width: 140px; /* Уменьшили кнопку (было 180) */
+    height: 140px;
+    border-radius: 50%;
+    background-color: #404249; /* Базовый серый кнопки */
+    border: none; /* Убрали обводку для минимализма */
+    cursor: pointer;
+    position: relative;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 0 rgba(88, 101, 242, 0); /* Начальная тень */
+}
+
+/* Иконка выключения */
+.power-icon {
+    width: 75px; /* Увеличили саму иконку внутри круга (было 60) */
+    height: 75px;
+    stroke: #b5bac1; /* Цвет иконки в выкл. состоянии */
+    stroke-width: 2.5; /* Сделали еще тоньше по запросу пользователя (было 3.5) */
+    fill: none;
+    transition: stroke 0.3s ease;
+}
+
+.app-window.active .power-button {
+    background-color: #5865f2; /* Синий фон кнопки */
+    transform: scale(1.05);
+    border-color: transparent;
+    /* Мягкое внешнее свечение в цвет кнопки */
+    box-shadow: 0 0 25px rgba(88, 101, 242, 0.4);
+}
+
+.app-window.active .power-icon {
+    stroke: #ffffff; /* Белая иконка при включении */
+    stroke-width: 2.5; /* Сохраняем изящную толщину (было 3.5) */
+}
+
+/* Убрали эффект пульсации и свечение */
+
+/* ЭФФЕКТ ЗАГРУЗКИ ПРИ ПОДБОРЕ */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.power-button.loading {
+    cursor: wait;
+    background-color: #4f545c;
+}
+
+.power-button:disabled {
+    cursor: default;
+}
+
+/* СТИЛИ ДЛЯ ВЫБОРА СТРАТЕГИИ */
+.strategy-container {
+    width: 100%;
+    margin-bottom: 25px; /* Уменьшили нижний отступ */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 50;
+    margin-top: 0; /* Убрали отрицательный отступ */
+}
+
+.strategy-select {
+    width: auto;
+    background-color: transparent;
+    border-radius: 4px;
+    padding: 2px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px; /* Увеличили отступ между текстом и стрелкой до 10px (был 4px) */
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.strategy-select:hover:not([style*="not-allowed"]) {
+    background-color: transparent;
+    border-color: transparent;
+}
+
+.strategy-select.open {
+    background-color: transparent;
+}
+
+.selected-label {
+    color: #4f545c; /* Базовый тусклый цвет */
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px; /* Вернули нормальный letter-spacing */
+    transition: color 0.2s ease;
+}
+
+.chevron-icon {
+    width: 12px;
+    height: 12px;
+    color: #4f545c; /* Базовый тусклый цвет */
+    transition: all 0.2s ease;
+}
+
+/* СОСТОЯНИЯ: При наведении или когда меню открыто — текст и стрелка светлеют синхронно */
+.strategy-select:hover:not([style*="default"]) .selected-label,
+.strategy-select.open .selected-label {
+    color: #b5bac1;
+}
+
+.strategy-select:hover:not([style*="default"]) .chevron-icon,
+.strategy-select.open .chevron-icon {
+    color: #b5bac1;
+}
+
+.strategy-select.open .chevron-icon {
+    transform: rotate(180deg);
+}
+
+.strategy-dropdown {
+    position: absolute;
+    bottom: 25px; /* Выпадает вверх прямо над текстом */
+    width: 200px;
+    max-height: 180px;
+    overflow-y: auto;
+    background-color: #313338;
+    border-radius: 8px;
+    padding: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* Уменьшили интенсивность тени */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    animation: slideUp 0.2s ease;
+    scrollbar-width: none; /* Для Firefox */
+    -ms-overflow-style: none;  /* Для IE/Edge */
+}
+
+/* Скрываем скроллбар для Chrome/Safari/Webkit */
+.strategy-dropdown::-webkit-scrollbar {
+    display: none;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.strategy-option {
+    padding: 10px 12px;
+    border-radius: 4px;
+    color: #b5bac1;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.1s ease;
+}
+
+.strategy-option:hover {
+    background-color: #404249;
+    color: #ffffff;
+}
+
+.strategy-option.active {
+    background-color: rgba(88, 101, 242, 0.15);
+    color: #5865f2;
+}
