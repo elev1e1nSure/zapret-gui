@@ -45,11 +45,14 @@ async fn run_batch(handle: AppHandle, name: String) -> Result<(), String> {
 
     let parent_path = resource_path.parent().expect("Resource path should have a parent");
     
-    let clean_exec_path = clean_unc_path(&resource_path);
-    let clean_working_dir = clean_unc_path(parent_path);
+    let clean_exec_path = clean_unc_path(final_path);
+    let clean_working_dir = clean_unc_path(parent_path.to_path_buf());
 
-    println!("Executing: {}", clean_exec_path);
-    println!("Working Dir: {}", clean_working_dir);
+    #[cfg(debug_assertions)]
+    {
+        println!("Executing: {}", clean_exec_path);
+        println!("Working Dir: {}", clean_working_dir);
+    }
 
     // Run the batch file directly with CREATE_NO_WINDOW.
     Command::new("cmd")
@@ -65,11 +68,18 @@ async fn run_batch(handle: AppHandle, name: String) -> Result<(), String> {
 #[tauri::command]
 async fn stop_batch() -> Result<(), String> {
     // Kill the winws.exe process and its children
-    Command::new("cmd")
+    // Using taskkill /F /IM winws.exe /T ensures all instances are killed
+    let status = Command::new("cmd")
         .args(&["/C", "taskkill /F /IM winws.exe /T >nul 2>&1"])
         .creation_flags(CREATE_NO_WINDOW)
         .status()
-        .map_err(|e| format!("Failed to stop processes: {}", e))?;
+        .map_err(|e| format!("Failed to execute taskkill: {}", e))?;
+
+    if !status.success() {
+        // Taskkill returns non-zero if process not found, which is fine
+        #[cfg(debug_assertions)]
+        println!("Taskkill finished with status: {}", status);
+    }
 
     Ok(())
 }

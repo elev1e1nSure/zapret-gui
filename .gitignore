@@ -6,19 +6,32 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+engine_log.txt
 
-node_modules
-dist
-dist-ssr
+# Dependency directories
+node_modules/
+/dist/
+/dist-ssr/
 *.local
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# Rust/Tauri
+src-tauri/target/
+src-tauri/gen/
+src-tauri/bin/*.exe
+src-tauri/bin/*.dll
+src-tauri/bin/*.sys
+
+# Engine temporary/backup files
+src-tauri/engine/lists/*.backup
+src-tauri/engine/utils/check_updates.enabled.tmp
