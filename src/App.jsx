@@ -14,6 +14,7 @@ function App() {
   const [activeStrategyLabel, setActiveStrategyLabel] = useState("");
 
   const dropdownRef = useRef(null);
+  const activeItemRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -24,6 +25,10 @@ function App() {
 
     if (isDropdownOpen) {
       document.addEventListener("mousedown", handleClickOutside);
+      // Прокрутка к активному элементу при открытии
+      if (activeItemRef.current) {
+        activeItemRef.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
     } else {
       document.removeEventListener("mousedown", handleClickOutside);
     }
@@ -34,7 +39,8 @@ function App() {
   }, [isDropdownOpen]);
 
   const strategies = [
-    { label: "Standard", value: "general_silent.bat" },
+    { label: "Автоподбор", value: "auto" },
+    { label: "General", value: "general_silent.bat" },
     { label: "General ALT", value: "general (ALT)_silent.bat" },
     { label: "General ALT 2", value: "general (ALT2)_silent.bat" },
     { label: "General ALT 3", value: "general (ALT3)_silent.bat" },
@@ -181,19 +187,18 @@ function App() {
           </svg>
         </div>
         
-        {isDropdownOpen && (
-          <div className="strategy-dropdown">
-            {strategies.map((strategy) => (
-              <div 
-                key={strategy.value}
-                className={`strategy-option ${selectedStrategy === strategy.value ? "active" : ""}`}
-                onClick={() => selectStrategy(strategy.value)}
-              >
-                {strategy.label}
-              </div>
-            ))}
-          </div>
-        )}
+        <div className={`strategy-dropdown ${isDropdownOpen ? "open" : ""}`}>
+          {strategies.map((strategy) => (
+            <div 
+              key={strategy.value}
+              ref={selectedStrategy === strategy.value ? activeItemRef : null}
+              className={`strategy-option ${selectedStrategy === strategy.value ? "active" : ""}`}
+              onClick={() => selectStrategy(strategy.value)}
+            >
+              {strategy.label}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

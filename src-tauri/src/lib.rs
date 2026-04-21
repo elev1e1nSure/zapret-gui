@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, path::BaseDirectory};
 use std::process::Command;
 use std::os::windows::process::CommandExt;
 use std::path::Path;
@@ -18,35 +18,31 @@ fn clean_unc_path(path: &Path) -> String {
 
 #[tauri::command]
 async fn run_batch(handle: AppHandle, name: String) -> Result<(), String> {
-    // 1. Try to find in standard resource directory
-    let mut resource_path = handle.path().resource_dir()
-        .map_err(|e| format!("Could not get resource directory: {}", e))?
-        .join("engine")
-        .join(&name);
+    // 1. Resolve path to engine file in resources
+    let resource_path = handle.path().resolve(format!("engine/{}", name), BaseDirectory::Resource)
+        .map_err(|e| format!("Could not resolve resource path: {}", e))?;
 
-    // 2. If not found (common during dev when new files added), try source directory
-    if !resource_path.exists() {
-        if let Ok(cwd) = std::env::current_dir() {
-            let dev_path = if cwd.ends_with("src-tauri") {
-                cwd.join("engine").join(&name)
-            } else {
-                cwd.join("src-tauri").join("engine").join(&name)
-            };
-            
-            if dev_path.exists() {
-                resource_path = dev_path;
-            }
+    // 2. Fallback to dev path if resource doesn't exist (common during development)
+    let final_path = if !resource_path.exists() {
+        let cwd = std::env::current_dir().map_err(|e| format!("Could not get current dir: {}", e))?;
+        let dev_path = if cwd.ends_with("src-tauri") {
+            cwd.join("engine").join(&name)
+        } else {
+            cwd.join("src-tauri").join("engine").join(&name)
+        };
+        
+        if !dev_path.exists() {
+            return Err(format!("Batch file not found in resources or dev path: {}", name));
         }
-    }
+        dev_path
+    } else {
+        resource_path
+    };
 
-    if !resource_path.exists() {
-        return Err(format!("Batch file not found: {:?}", resource_path));
-    }
-
-    let parent_path = resource_path.parent().expect("Resource path should have a parent");
+    let parent_path = final_path.parent().ok_or("Resource path should have a parent")?;
     
-    let clean_exec_path = clean_unc_path(final_path);
-    let clean_working_dir = clean_unc_path(parent_path.to_path_buf());
+    let clean_exec_path = clean_unc_path(&final_path);
+    let clean_working_dir = clean_unc_path(parent_path);
 
     #[cfg(debug_assertions)]
     {

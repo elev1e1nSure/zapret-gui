@@ -257,7 +257,13 @@ h1 {
     padding: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* Уменьшили интенсивность тени */
     border: 1px solid rgba(255, 255, 255, 0.05);
-    animation: slideUp 0.2s ease;
+    
+    /* Анимация появления и исчезновения */
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    
     scrollbar-width: none; /* Для Firefox */
     -ms-overflow-style: none;  /* Для IE/Edge */
 }
@@ -267,9 +273,10 @@ h1 {
     display: none;
 }
 
-@keyframes slideUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+.strategy-dropdown.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
 }
 
 .strategy-option {
