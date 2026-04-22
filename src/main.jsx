@@ -3,35 +3,32 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 
 // Блокировка контекстного меню
-document.addEventListener('contextmenu', (e) => e.preventDefault());
+window.addEventListener('contextmenu', (e) => e.preventDefault(), true);
 
 // Блокировка горячих клавиш для ощущения нативного приложения
-document.addEventListener('keydown', (e) => {
-  // Перезагрузка: F5, Ctrl+R, Ctrl+Shift+R
-  if (e.key === 'F5' || (e.ctrlKey && e.key === 'r') || (e.ctrlKey && e.shiftKey && e.key === 'R')) {
+window.addEventListener('keydown', (e) => {
+  const isCtrl = e.ctrlKey || e.metaKey;
+  const isShift = e.shiftKey;
+  const code = e.code;
+
+  // Список блокируемых кодов клавиш
+  const blockedCodes = [
+    'KeyF', 'KeyG', 'KeyR', 'KeyP', 'KeyS', 'KeyU', 'KeyI', 'KeyJ', 'KeyC', 'KeyO'
+  ];
+
+  if (
+    // Одиночные клавиши
+    code === 'F5' || code === 'F12' || code === 'F3' ||
+    // Ctrl + Key
+    (isCtrl && blockedCodes.includes(code)) ||
+    // Alt + Стрелки
+    (e.altKey && (code === 'ArrowLeft' || code === 'ArrowRight'))
+  ) {
     e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
   }
-  // Поиск: Ctrl+F
-  if (e.ctrlKey && e.key === 'f') {
-    e.preventDefault();
-  }
-  // DevTools: F12, Ctrl+Shift+I
-  if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
-    e.preventDefault();
-  }
-  // Системные действия: Ctrl+P (Печать), Ctrl+S (Сохранить), Ctrl+U (Исходный код)
-  if (e.ctrlKey && (e.key === 'p' || e.key === 's' || e.key === 'u')) {
-    e.preventDefault();
-  }
-  // Инспектор: Ctrl+Shift+C
-  if (e.ctrlKey && e.shiftKey && e.key === 'C') {
-    e.preventDefault();
-  }
-  // Навигация: Alt+Left/Right
-  if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-    e.preventDefault();
-  }
-});
+}, { capture: true });
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

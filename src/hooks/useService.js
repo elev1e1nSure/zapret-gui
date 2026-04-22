@@ -1,14 +1,21 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { STRATEGIES } from "../config";
+import { listen } from "@tauri-apps/api/event";
+import { STRATEGIES, APP_STATUS } from "../config";
 
 export function useService() {
+  // Основные состояния сервиса
   const [isActive, setIsActive] = useState(false);
-  const [status, setStatus] = useState("Zapret готов к запуску");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showLoadingUI, setShowLoadingUI] = useState(false);
+  const [status, setStatus] = useState(APP_STATUS.READY);
   const [selectedStrategy, setSelectedStrategy] = useState("auto");
-  const [isExiting, setIsExiting] = useState(false);
+  
+  // Состояния процесса (загрузка, выход, UI)
+  const [processState, setProcessState] = useState({
+    isLoading: false,
+    isExiting: false,
+    showLoadingUI: false
+  });
+  
   const [dots, setDots] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -16,82 +23,94 @@ export function useService() {
 
   const activeStrategyLabel = STRATEGIES.find(s => s.value === selectedStrategy)?.label || "Custom";
 
+  // Синхронизация статуса в трее
   useEffect(() => {
+    invoke("update_tray_status", { isActive }).catch(() => {});
+  }, [isActive]);
+
+  // Управление отображением загрузки
+  useEffect(() => {
+    const { isLoading } = processState;
     if (!isLoading) {
-      setShowLoadingUI(false);
+      setProcessState(prev => ({ ...prev, showLoadingUI: false }));
       return;
     }
 
     if (selectedStrategy === "auto") {
-      setShowLoadingUI(true);
+      setProcessState(prev => ({ ...prev, showLoadingUI: true }));
       return;
     }
 
-    const timeout = setTimeout(() => setShowLoadingUI(true), 500);
+    const timeout = setTimeout(() => {
+      setProcessState(prev => ({ ...prev, showLoadingUI: true }));
+    }, 500);
+    
     return () => clearTimeout(timeout);
-  }, [isLoading, selectedStrategy]);
+  }, [processState.isLoading, selectedStrategy]);
 
+  // Анимация точек при подборе
   useEffect(() => {
-    if (showLoadingUI && status.startsWith("Подбор стратегии")) {
+    if (processState.showLoadingUI && status.startsWith(APP_STATUS.DISCOVERY)) {
       const interval = setInterval(() => {
         setDots(prev => (prev.length >= 3 ? "." : prev + "."));
       }, 800);
       return () => clearInterval(interval);
     }
     setDots("");
-  }, [showLoadingUI, status]);
+  }, [processState.showLoadingUI, status]);
+
+  // Завершение любого процесса (запуск/остановка)
+  const finalizeProcess = useCallback(() => {
+    setTimeout(() => {
+      setProcessState({
+        isLoading: false,
+        isExiting: false,
+        showLoadingUI: false
+      });
+    }, 300);
+  }, []);
 
   const abortDiscovery = async () => {
     abortControllerRef.current = true;
-    setIsExiting(true);
-    setStatus("Zapret готов к запуску");
+    setProcessState(prev => ({ ...prev, isExiting: true }));
+    setStatus(APP_STATUS.READY);
 
     try {
       await invoke("abort_auto_discovery");
     } catch (error) {
-      // Ignore error during abort
+      // Игнорируем ошибки при отмене
     }
     
-    setTimeout(() => {
-      setIsLoading(false);
-      setShowLoadingUI(false);
-      setIsExiting(false);
-    }, 300);
+    finalizeProcess();
   };
 
-  const toggleService = async () => {
-    if (isLoading) {
+  const toggleService = useCallback(async () => {
+    if (processState.isLoading) {
       await abortDiscovery();
       return;
     }
 
     if (isActive) {
       setIsActive(false);
-      setIsLoading(true);
-      setIsExiting(true);
-      setStatus("Zapret готов к запуску");
+      setProcessState({ isLoading: true, isExiting: true, showLoadingUI: false });
+      setStatus(APP_STATUS.READY);
 
       try {
         await invoke("stop_service");
-        setTimeout(() => {
-          setIsLoading(false);
-          setShowLoadingUI(false);
-          setIsExiting(false);
-        }, 300);
+        finalizeProcess();
       } catch (error) {
-        setStatus(`Ошибка остановки: ${error}`);
-        setIsLoading(false);
-        setIsExiting(false);
+        setStatus(APP_STATUS.ERROR(error));
+        setProcessState({ isLoading: false, isExiting: false, showLoadingUI: false });
       }
       return;
     }
 
-    setIsLoading(true);
+    setProcessState({ isLoading: true, isExiting: false, showLoadingUI: false });
     abortControllerRef.current = false;
     
     try {
       if (selectedStrategy === "auto") {
-        setStatus("Подбор стратегии");
+        setStatus(APP_STATUS.DISCOVERY);
         const strategyValues = STRATEGIES
           .filter(s => s.value !== "auto")
           .map(s => s.value);
@@ -102,31 +121,40 @@ export function useService() {
           setSelectedStrategy(bestStrategy);
           setIsActive(true);
           const label = STRATEGIES.find(s => s.value === bestStrategy)?.label || "Custom";
-          setStatus(`${label} подобран`);
+          setStatus(APP_STATUS.MATCHED(label));
         }
       } else {
         await invoke("run_strategy", { name: selectedStrategy });
         setIsActive(true);
-        setStatus(`${activeStrategyLabel} запущен`);
+        setStatus(APP_STATUS.RUNNING(activeStrategyLabel));
       }
     } catch (error) {
-      if (!abortControllerRef.current && error !== "Поиск отменен") {
+      if (!abortControllerRef.current && error !== APP_STATUS.DISCOVERY_ABORTED) {
         setIsActive(false);
-        setStatus(`Ошибка: ${error}`);
+        setStatus(APP_STATUS.ERROR(error));
       }
     } finally {
-      setIsLoading(false);
+      setProcessState(prev => ({ ...prev, isLoading: false }));
     }
-  };
+  }, [isActive, processState.isLoading, selectedStrategy, activeStrategyLabel, finalizeProcess]);
+
+  useEffect(() => {
+    const unlisten = listen("tray-toggle", () => {
+      toggleService();
+    });
+    return () => {
+      unlisten.then(f => f());
+    };
+  }, [toggleService]);
 
   return {
     isActive,
     status,
-    isLoading,
-    showLoadingUI,
+    isLoading: processState.isLoading,
+    showLoadingUI: processState.showLoadingUI,
+    isExiting: processState.isExiting,
     selectedStrategy,
     setSelectedStrategy,
-    isExiting,
     dots,
     isDropdownOpen,
     setIsDropdownOpen,

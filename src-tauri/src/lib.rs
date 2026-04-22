@@ -6,8 +6,11 @@ use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{AppHandle, Manager, State};
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::{AppHandle, Emitter, Manager, State};
 use thiserror::Error;
+use futures::future::join_all;
 
 static ENGINE_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/engine");
 
@@ -40,7 +43,10 @@ impl serde::Serialize for AppError {
 
 struct AppState {
     cancel_discovery: Arc<AtomicBool>,
+    toggle_item: std::sync::Mutex<Option<tauri::menu::MenuItem<tauri::Wry>>>,
 }
+
+// --- Вспомогательные функции для движка ---
 
 fn clean_unc_path(path: &Path) -> String {
     let path_str = path.to_string_lossy();
@@ -64,26 +70,20 @@ async fn check_connection() -> bool {
         "https://discord.com/api/v9/gateway",
     ];
 
-    let mut success_count = 0;
-
-    for url in targets {
-        match client.get(url).send().await {
-            Ok(resp) => {
-                if resp.status().is_success() || resp.status().as_u16() == 403 {
-                    success_count += 1;
-                }
+    let tasks = targets.iter().map(|&url| {
+        let client = client.clone();
+        async move {
+            match client.get(url).send().await {
+                Ok(resp) => resp.status().is_success() || resp.status().as_u16() == 403,
+                Err(_) => false,
             }
-            Err(_) => continue,
         }
-    }
+    });
+
+    let results = join_all(tasks).await;
+    let success_count = results.into_iter().filter(|&res| res).count();
 
     success_count >= 2
-}
-
-#[tauri::command]
-async fn run_strategy(handle: AppHandle, name: String) -> Result<(), AppError> {
-    let strategy_path = resolve_strategy_path(&handle, &name)?;
-    execute_strategy(&strategy_path)
 }
 
 fn extract_engine(handle: &AppHandle) -> Result<PathBuf, AppError> {
@@ -93,7 +93,8 @@ fn extract_engine(handle: &AppHandle) -> Result<PathBuf, AppError> {
         .map_err(|e| AppError::PathError(e.to_string()))?;
     let engine_dir = app_local_data.join("engine");
 
-    if !engine_dir.exists() {
+    // Если папка не существует или пуста, выполняем распаковку
+    if !engine_dir.exists() || std::fs::read_dir(&engine_dir)?.next().is_none() {
         std::fs::create_dir_all(&engine_dir)?;
         ENGINE_DIR
             .extract(&engine_dir)
@@ -132,6 +133,21 @@ fn execute_strategy(path: &Path) -> Result<(), AppError> {
     Ok(())
 }
 
+fn kill_winws() {
+    let _ = Command::new("cmd")
+        .args(["/C", "taskkill /F /IM winws.exe /T >nul 2>&1"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .status();
+}
+
+// --- Tauri команды ---
+
+#[tauri::command]
+async fn run_strategy(handle: AppHandle, name: String) -> Result<(), AppError> {
+    let strategy_path = resolve_strategy_path(&handle, &name)?;
+    execute_strategy(&strategy_path)
+}
+
 #[tauri::command]
 async fn abort_auto_discovery(state: State<'_, AppState>) -> Result<(), AppError> {
     state.cancel_discovery.store(true, Ordering::SeqCst);
@@ -159,6 +175,7 @@ async fn run_auto_discovery(
             continue;
         }
 
+        // Ждем запуска прокси (3 секунды с проверкой на отмену)
         for _ in 0..30 {
             if state.cancel_discovery.load(Ordering::SeqCst) {
                 let _ = stop_service().await;
@@ -177,34 +194,99 @@ async fn run_auto_discovery(
 
 #[tauri::command]
 async fn stop_service() -> Result<(), AppError> {
-    Command::new("cmd")
-        .args(["/C", "taskkill /F /IM winws.exe /T >nul 2>&1"])
-        .creation_flags(CREATE_NO_WINDOW)
-        .status()
-        .map_err(|e| AppError::ProcessError(e.to_string()))?;
+    kill_winws();
+    Ok(())
+}
 
+#[tauri::command]
+async fn update_tray_status(state: State<'_, AppState>, is_active: bool) -> Result<(), AppError> {
+    if let Some(item) = state.toggle_item.lock().unwrap().as_ref() {
+        let _ = item.set_text(if is_active { "Выключить" } else { "Включить" });
+    }
     Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let cancel_discovery = Arc::new(AtomicBool::new(false));
+    let toggle_item_store = std::sync::Mutex::new(None);
+
     tauri::Builder::default()
         .manage(AppState {
-            cancel_discovery: Arc::new(AtomicBool::new(false)),
+            cancel_discovery,
+            toggle_item: toggle_item_store,
         })
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             run_strategy,
             stop_service,
             run_auto_discovery,
-            abort_auto_discovery
+            abort_auto_discovery,
+            update_tray_status
         ])
         .setup(|app| {
+            let toggle_item = MenuItem::with_id(app, "toggle", "Включить", true, None::<&str>)?;
+            
+            // Сохраняем пункт меню в состояние для обновлений
+            let state = app.state::<AppState>();
+            *state.toggle_item.lock().unwrap() = Some(toggle_item.clone());
+
+            let show_item = MenuItem::with_id(app, "show", "Показать", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Выход", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&toggle_item, &show_item, &quit_item])?;
+
+            let _tray = TrayIconBuilder::with_id("main_tray")
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "toggle" => {
+                        let _ = app.emit("tray-toggle", ());
+                    }
+                    "show" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                    "quit" => {
+                        kill_winws();
+                        app.exit(0);
+                    }
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click { 
+                        button: MouseButton::Left, 
+                        button_state: MouseButtonState::Up, 
+                        .. 
+                    } = event {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
+
             if let Some(window) = app.get_webview_window("main") {
                 #[cfg(target_os = "windows")]
                 let _ = window.set_shadow(false);
             }
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

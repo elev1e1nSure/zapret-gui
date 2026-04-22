@@ -20,3 +20,13 @@ export const STRATEGIES = [
   { label: "Simple Fake ALT", value: "general (SIMPLE FAKE ALT)_silent.bat" },
   { label: "Simple Fake ALT 2", value: "general (SIMPLE FAKE ALT2)_silent.bat" },
 ];
+
+export const APP_STATUS = {
+  READY: "Zapret готов к запуску",
+  DISCOVERY: "Подбор стратегии",
+  RUNNING: (label) => `${label} запущен`,
+  MATCHED: (label) => `${label} подобран`,
+  STOPPING: "Остановка...",
+  ERROR: (err) => `Ошибка: ${err}`,
+  DISCOVERY_ABORTED: "Поиск отменен",
+};
