@@ -42,7 +42,7 @@ html, body, #root {
     height: 32px;
     background: transparent;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
     position: absolute;
     top: 0;
@@ -59,6 +59,10 @@ html, body, #root {
     background: transparent;
 }
 
+.titlebar-controls {
+    display: flex;
+}
+
 .titlebar-button {
     display: inline-flex;
     justify-content: center;
@@ -71,6 +75,48 @@ html, body, #root {
     font-family: Arial, sans-serif;
     font-size: 20px;
     -webkit-app-region: no-drag;
+}
+
+.settings-button {
+    position: absolute;
+    bottom: -2px; 
+    right: -2px;
+    width: 56px; /* Уменьшил (было 68px) */
+    height: 56px;
+    background-color: #404249;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 101;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: #b5bac1;
+    box-shadow: none;
+    -webkit-app-region: no-drag;
+    border: 5px solid #2b2d31; /* Увеличил обводку до 6px */
+    box-sizing: border-box;
+}
+
+.settings-button.hidden {
+    opacity: 0;
+    transform: scale(0.6) rotate(-45deg);
+    pointer-events: none;
+    transition: all 0.13s cubic-bezier(0.4, 0, 0.2, 1); /* Быстрее при исчезновении */
+}
+
+.settings-button:hover:not(.hidden) {
+    background-color: #4f5159; /* Ещё чуть светлее при наведении */
+    color: #ffffff;
+    /* Убрал transform: scale(1.05) */
+}
+
+.settings-button svg {
+    transition: transform 0.4s ease;
+}
+
+.settings-button:hover:not(.hidden) svg {
+    transform: rotate(45deg);
 }
 
 .titlebar-button:hover {
@@ -87,6 +133,17 @@ html, body, #root {
     width: 100%;
     margin-top: 0;
     -webkit-app-region: drag;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.header-link {
+    text-decoration: none;
+    -webkit-app-region: no-drag;
+    position: relative;
+    display: inline-block;
+    overflow: hidden;
 }
 
 h1 {
@@ -97,6 +154,12 @@ h1 {
     letter-spacing: 0.03em;
     text-transform: uppercase; 
     pointer-events: none;
+    position: relative;
+    transition: color 0.2s ease;
+}
+
+.header-link:hover h1 {
+    color: #5865f2;
 }
 
 .status-text {
@@ -123,6 +186,13 @@ h1 {
     margin: 5px 0;
 }
 
+.power-button-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .power-button {
     width: 160px;
     height: 160px;
@@ -131,11 +201,20 @@ h1 {
     border: none;
     cursor: pointer;
     position: relative;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    /* Плавный переход только для нужных свойств, убираем "дерганый" overshoot easing */
+    transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+                box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     justify-content: center;
     align-items: center;
     box-shadow: 0 0 0 rgba(88, 101, 242, 0);
+    /* Аппаратное ускорение для стабильности */
+    transform: translateZ(0);
+    will-change: background-color, box-shadow;
+}
+
+.power-button:hover:not(.loading) {
+    background-color: #46484f;
 }
 
 .power-icon {
@@ -145,24 +224,29 @@ h1 {
     stroke-width: 2.2;
     fill: none;
     transition: stroke 0.3s ease;
-    animation: iconFadeIn 0.5s ease forwards;
+    animation: iconFadeIn 0.3s ease forwards;
+    /* Убираем все трансформации, которые могут вызывать рывки при округлении пикселей */
+    backface-visibility: hidden;
+    will-change: opacity;
 }
 
 @keyframes iconFadeIn {
     from { 
         opacity: 0;
-        transform: scale(0.9);
     }
     to { 
         opacity: 1;
-        transform: scale(1);
     }
 }
 
 .app-window.active .power-button {
     background-color: #5865f2;
-    transform: scale(1.05);
+    /* Убираем scale трансформацию, оставляем только тень для стабильности позиции */
     box-shadow: 0 0 25px rgba(88, 101, 242, 0.4);
+}
+
+.app-window.active .power-button:hover {
+    background-color: #616df4;
 }
 
 .app-window.active .power-icon {
@@ -183,6 +267,7 @@ h1 {
     border: 4px solid transparent;
     border-top: 4px solid #b5bac1;
     border-radius: 50%;
+    box-sizing: border-box; /* Чтобы размер вместе с границей был 85x85 */
     /* Анимируем только прозрачность, чтобы не конфликтовать с transform в spin */
     animation: spin 1.2s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite, fadeInOpacity 0.4s ease forwards;
 }
@@ -218,8 +303,15 @@ h1 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    z-index: 50;
+    z-index: 110; /* Поднял выше кнопки настроек (101) */
     margin-top: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.strategy-container.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(15px);
 }
 
 .strategy-select {
