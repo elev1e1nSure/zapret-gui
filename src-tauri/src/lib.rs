@@ -244,15 +244,30 @@ async fn run_auto_discovery(
             continue;
         }
 
-        for _ in 0..30 {
-            if state.cancel_discovery.load(Ordering::SeqCst) {
-                let _ = stop_service().await;
-                return Err(AppError::DiscoveryAborted);
+        let strategy_timeout = tokio::time::sleep(Duration::from_secs(5));
+        tokio::pin!(strategy_timeout);
+        let mut poll_interval = tokio::time::interval(Duration::from_millis(500));
+        let mut matched = false;
+
+        loop {
+            tokio::select! {
+                _ = &mut strategy_timeout => {
+                    break;
+                }
+                _ = poll_interval.tick() => {
+                    if state.cancel_discovery.load(Ordering::SeqCst) {
+                        let _ = stop_service().await;
+                        return Err(AppError::DiscoveryAborted);
+                    }
+                    if engine::check_connection().await {
+                        matched = true;
+                        break;
+                    }
+                }
             }
-            tokio::time::sleep(Duration::from_millis(100)).await;
         }
 
-        if engine::check_connection().await {
+        if matched {
             println!("[Zapret] Найдена подходящая стратегия: {}", strategy);
             return Ok(strategy);
         }
