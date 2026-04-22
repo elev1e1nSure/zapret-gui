@@ -5,29 +5,29 @@ import App from "./App";
 // Блокировка контекстного меню
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 
-// Блокировка горячих клавиш
+// Блокировка горячих клавиш для ощущения нативного приложения
 document.addEventListener('keydown', (e) => {
-  // F5, Ctrl+R, Ctrl+Shift+R (Перезагрузка)
+  // Перезагрузка: F5, Ctrl+R, Ctrl+Shift+R
   if (e.key === 'F5' || (e.ctrlKey && e.key === 'r') || (e.ctrlKey && e.shiftKey && e.key === 'R')) {
     e.preventDefault();
   }
-  // Ctrl+F (Поиск)
+  // Поиск: Ctrl+F
   if (e.ctrlKey && e.key === 'f') {
     e.preventDefault();
   }
-  // F12, Ctrl+Shift+I (DevTools)
+  // DevTools: F12, Ctrl+Shift+I
   if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
     e.preventDefault();
   }
-  // Ctrl+P (Печать), Ctrl+S (Сохранение), Ctrl+U (Исходный код)
+  // Системные действия: Ctrl+P (Печать), Ctrl+S (Сохранить), Ctrl+U (Исходный код)
   if (e.ctrlKey && (e.key === 'p' || e.key === 's' || e.key === 'u')) {
     e.preventDefault();
   }
-  // Ctrl+Shift+C (Инспектор)
+  // Инспектор: Ctrl+Shift+C
   if (e.ctrlKey && e.shiftKey && e.key === 'C') {
     e.preventDefault();
   }
-  // Alt+Left/Right (Навигация назад/вперед)
+  // Навигация: Alt+Left/Right
   if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
     e.preventDefault();
   }

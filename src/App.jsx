@@ -83,15 +83,14 @@ function App() {
   }, [isDropdownOpen]);
 
   const abortDiscovery = async () => {
-    console.log("Aborting auto discovery...");
     abortControllerRef.current = true;
     setIsExiting(true);
-    setStatus("Zapret готов к запуску"); // Обновляем текст мгновенно
+    setStatus("Zapret готов к запуску");
 
     try {
       await invoke("abort_auto_discovery");
     } catch (error) {
-      console.error("Failed to abort:", error);
+      // Ignore error during abort
     }
     
     setTimeout(() => {
@@ -108,20 +107,19 @@ function App() {
     }
 
     if (isActive) {
+      setIsActive(false);
       setIsLoading(true);
       setIsExiting(true);
-      setStatus("Zapret готов к запуску"); // Обновляем текст мгновенно
+      setStatus("Zapret готов к запуску");
 
       try {
         await invoke("stop_batch");
         setTimeout(() => {
-          setIsActive(false);
           setIsLoading(false);
           setShowLoadingUI(false);
           setIsExiting(false);
         }, 300);
       } catch (error) {
-        console.error("Failed to stop batch:", error);
         setStatus(`Ошибка остановки: ${error}`);
         setIsLoading(false);
         setIsExiting(false);
@@ -154,7 +152,6 @@ function App() {
       }
     } catch (error) {
       if (!abortControllerRef.current && error !== "Поиск отменен") {
-        console.error("Run error:", error);
         setIsActive(false);
         setStatus(`Ошибка: ${error}`);
       }
@@ -164,7 +161,6 @@ function App() {
   };
 
   const handlePointerDown = (e) => {
-    // Drag only on specific regions
     if (e.buttons === 1 && 
         !e.target.closest(".titlebar-button") && 
         !e.target.closest(".power-button") &&
@@ -178,12 +174,13 @@ function App() {
     setIsDropdownOpen(false);
   };
 
+  const currentStrategyLabel = strategies.find(s => s.value === selectedStrategy)?.label;
+
   return (
     <div 
       className={`app-window ${isActive ? "active" : ""} ${showLoadingUI ? "detecting" : ""}`} 
       id="appWindow"
     >
-      {/* Custom Titlebar */}
       <div 
         className="titlebar" 
         data-tauri-drag-region
@@ -241,7 +238,6 @@ function App() {
         </button>
       </div>
 
-      {/* Strategy Selector */}
       <div className="strategy-container" ref={dropdownRef}>
         <div 
           className={`strategy-select ${isDropdownOpen ? "open" : ""}`}
@@ -252,7 +248,7 @@ function App() {
           style={{ cursor: isActive ? "default" : "pointer" }}
         >
           <span className="selected-label">
-            {strategies.find(s => s.value === selectedStrategy)?.label}
+            {currentStrategyLabel}
           </span>
           <svg className="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M6 9l6 6 6-6" />

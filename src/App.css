@@ -39,7 +39,7 @@ html, body, #root {
 
 /* CUSTOM TITLEBAR */
 .titlebar {
-    height: 32px; /* Уменьшили высоту тайтлбара */
+    height: 32px;
     background: transparent;
     display: flex;
     justify-content: flex-end;
@@ -50,7 +50,6 @@ html, body, #root {
     right: 0;
     user-select: none;
     z-index: 100;
-    /* Нативная поддержка перетаскивания через CSS */
     -webkit-app-region: drag;
 }
 
@@ -64,14 +63,13 @@ html, body, #root {
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    width: 42px; /* Увеличили ширину кнопок (было 35) */
+    width: 42px;
     height: 32px;
     cursor: pointer;
     transition: all 0.2s ease;
     color: #b5bac1;
     font-family: Arial, sans-serif;
-    font-size: 20px; /* Увеличили размер символов (было 16) */
-    /* Кнопки НЕ должны перетаскивать окно */
+    font-size: 20px;
     -webkit-app-region: no-drag;
 }
 
@@ -87,34 +85,33 @@ html, body, #root {
 .header {
     text-align: center;
     width: 100%;
-    margin-top: 0; /* Убрали лишний отступ, теперь регулируется через padding окна */
-    /* Нативная поддержка перетаскивания через CSS */
+    margin-top: 0;
     -webkit-app-region: drag;
 }
 
 h1 {
-    color: #f2f3f5; /* Белый Дискорда */
+    color: #f2f3f5;
     font-size: 34px; 
-    margin: 0 0 2px 0; /* Подтянули статус максимально близко */
-    font-weight: 800; /* Более уверенный вес для Montserrat */
-    letter-spacing: 0.03em; /* Слегка увеличили интервал */
+    margin: 0 0 2px 0;
+    font-weight: 800;
+    letter-spacing: 0.03em;
     text-transform: uppercase; 
     pointer-events: none;
 }
 
 .status-text {
     color: #dbdee1; 
-    font-size: 13px; /* Сделали чуть крупнее */
+    font-size: 13px;
     margin: 0;
     transition: color 0.3s ease;
-    font-weight: 300; /* Тонкий, но читаемый */
+    font-weight: 300;
     pointer-events: none;
     opacity: 0.8;
 }
 
-/* СОСТОЯНИЕ "ВКЛЮЧЕНО" (Акцентные цвета) */
+/* СОСТОЯНИЕ "ВКЛЮЧЕНО" */
 .app-window.active .status-text {
-    color: #E0E0E0; /* Мягкий белый для читаемости */
+    color: #E0E0E0;
 }
 
 /* ГЛАВНАЯ АНИМИРОВАННАЯ КНОПКА */
@@ -123,30 +120,29 @@ h1 {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 5px 0; /* Чуть уменьшили для компенсации размера кнопки */
+    margin: 5px 0;
 }
 
 .power-button {
-    width: 160px; /* Увеличили для баланса (было 130px) */
+    width: 160px;
     height: 160px;
     border-radius: 50%;
-    background-color: #404249; /* Базовый серый кнопки */
-    border: none; /* Убрали обводку для минимализма */
+    background-color: #404249;
+    border: none;
     cursor: pointer;
     position: relative;
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 0 0 rgba(88, 101, 242, 0); /* Начальная тень */
+    box-shadow: 0 0 0 rgba(88, 101, 242, 0);
 }
 
-/* Иконка выключения */
 .power-icon {
-    width: 85px; /* Увеличили пропорционально (было 75px) */
+    width: 85px;
     height: 85px;
-    stroke: #b5bac1; /* Цвет иконки в выкл. состоянии */
-    stroke-width: 2.2; /* Еще чуть изящнее при большем размере */
+    stroke: #b5bac1;
+    stroke-width: 2.2;
     fill: none;
     transition: stroke 0.3s ease;
     animation: iconFadeIn 0.5s ease forwards;
@@ -164,19 +160,15 @@ h1 {
 }
 
 .app-window.active .power-button {
-    background-color: #5865f2; /* Синий фон кнопки */
+    background-color: #5865f2;
     transform: scale(1.05);
-    border-color: transparent;
-    /* Мягкое внешнее свечение в цвет кнопки */
     box-shadow: 0 0 25px rgba(88, 101, 242, 0.4);
 }
 
 .app-window.active .power-icon {
-    stroke: #ffffff; /* Белая иконка при включении */
-    stroke-width: 2.5; /* Сохраняем изящную толщину (было 3.5) */
+    stroke: #ffffff;
+    stroke-width: 2.5;
 }
-
-/* Убрали эффект пульсации и свечение */
 
 /* ЭФФЕКТ ЗАГРУЗКИ ПРИ ПОДБОРЕ */
 .power-button.loading {
@@ -221,7 +213,7 @@ h1 {
 /* СТИЛИ ДЛЯ ВЫБОРА СТРАТЕГИИ */
 .strategy-container {
     width: 100%;
-    margin-bottom: 0; /* Убрали лишний отступ, теперь регулируется через padding окна */
+    margin-bottom: 0;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -232,20 +224,20 @@ h1 {
 
 .strategy-select {
     width: auto;
-    background-color: #313338; /* Вернули холодный Discord */
-    border-radius: 12px; /* Чуть увеличили радиус для массивности */
-    padding: 14px 28px; /* Увеличили padding (1.5x) */
+    background-color: #313338;
+    border-radius: 12px;
+    padding: 14px 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 16px; /* Увеличили gap (1.5x) */
+    gap: 16px;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     user-select: none;
     border: none;
 }
 
 .strategy-select:hover:not(.open):not([style*="default"]) {
-    background-color: #383a40; /* Холодное осветление */
+    background-color: #383a40;
 }
 
 .strategy-select.open {
@@ -253,22 +245,21 @@ h1 {
 }
 
 .selected-label {
-    color: #b5bac1; /* Сделали светлее по умолчанию */
-    font-size: 18px; /* Увеличили шрифт (1.5x) */
-    font-weight: 600; /* Чуть жирнее для массивности */
-    text-transform: none; /* Убрали капс для современности */
+    color: #b5bac1;
+    font-size: 18px;
+    font-weight: 600;
+    text-transform: none;
     letter-spacing: -0.02em;
     transition: color 0.2s ease;
 }
 
 .chevron-icon {
-    width: 18px; /* Увеличили иконку (1.5x) */
+    width: 18px;
     height: 18px;
-    color: #4f545c; /* Базовый тусклый цвет */
+    color: #4f545c;
     transition: all 0.2s ease;
 }
 
-/* СОСТОЯНИЯ: При наведении или когда меню открыто — текст и стрелка светлеют синхронно */
 .strategy-select:hover:not([style*="default"]) .selected-label,
 .strategy-select.open .selected-label {
     color: #b5bac1;
@@ -285,26 +276,22 @@ h1 {
 
 .strategy-dropdown {
     position: absolute;
-    bottom: 60px; /* Подняли выше из-за увеличившейся кнопки */
-    width: 240px; /* Чуть шире под новую кнопку */
+    bottom: 60px;
+    width: 240px;
     max-height: 180px;
     overflow-y: auto;
-    background-color: rgba(49, 51, 56, 0.95); /* Полупрозрачный для эффекта стекла */
-    backdrop-filter: blur(10px); /* Минималистичное размытие вместо тени */
+    background-color: rgba(49, 51, 56, 0.95);
+    backdrop-filter: blur(10px);
     border-radius: 12px;
     padding: 6px;
-    
-    /* Анимация появления и исчезновения */
     opacity: 0;
     transform: translateY(10px);
     pointer-events: none;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    
-    scrollbar-width: none; /* Для Firefox */
-    -ms-overflow-style: none;  /* Для IE/Edge */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
-/* Скрываем скроллбар для Chrome/Safari/Webkit */
 .strategy-dropdown::-webkit-scrollbar {
     display: none;
 }
@@ -320,7 +307,7 @@ h1 {
     border-radius: 4px;
     color: #b5bac1;
     font-size: 13px;
-    font-weight: 500; /* Увеличили жирность с дефолтных 400 до 500 */
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.1s ease;
 }

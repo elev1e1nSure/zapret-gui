@@ -10,13 +10,13 @@ use tauri::{AppHandle, Manager, State};
 
 static ENGINE_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/engine");
 
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 struct AppState {
     cancel_discovery: Arc<AtomicBool>,
 }
 
-const CREATE_NO_WINDOW: u32 = 0x08000000;
-
-/// Helper function to strip UNC prefix (\\?\) which CMD.exe doesn't support
+/// Strips UNC prefix (\\?\) which CMD.exe doesn't support
 fn clean_unc_path(path: &Path) -> String {
     let path_str = path.to_string_lossy();
     if let Some(stripped) = path_str.strip_prefix(r"\\?\") {
@@ -26,24 +26,25 @@ fn clean_unc_path(path: &Path) -> String {
     }
 }
 
+/// Checks internet connection through multiple targets
 async fn check_connection() -> bool {
     let client = Client::builder()
         .timeout(Duration::from_secs(3))
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
         .build()
         .unwrap_or_else(|_| Client::new());
-    
+
     let targets = [
         "https://www.youtube.com/generate_204",
         "https://discord.com/api/v9/gateway",
-        "https://rr1---sn-axmc5-n0se.googlevideo.com/generate_204"
+        "https://rr1---sn-axmc5-n0se.googlevideo.com/generate_204",
     ];
-    
+
     let mut success_count = 0;
-    
+
     for url in targets {
         if let Ok(resp) = client.get(url).send().await {
-            // 200, 204 - success. 403 often returned by googlevideo, still means SNI works.
+            // 200, 204 are success. 403 often returned by googlevideo but still means SNI works.
             if resp.status().is_success() || resp.status().as_u16() == 403 {
                 success_count += 1;
             }
@@ -115,9 +116,9 @@ async fn abort_auto_discovery(state: State<'_, AppState>) -> Result<(), String> 
 
 #[tauri::command]
 async fn run_auto_discovery(
-    handle: AppHandle, 
+    handle: AppHandle,
     state: State<'_, AppState>,
-    strategies: Vec<String>
+    strategies: Vec<String>,
 ) -> Result<String, String> {
     state.cancel_discovery.store(false, Ordering::SeqCst);
 
@@ -128,10 +129,7 @@ async fn run_auto_discovery(
 
         let _ = stop_batch().await;
         let final_path = resolve_engine_path(&handle, &strategy)?;
-        
-        #[cfg(debug_assertions)]
-        println!("Testing: {}", strategy);
-        
+
         if execute_batch(&final_path).is_err() {
             continue;
         }
@@ -172,8 +170,8 @@ pub fn run() {
         })
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            run_batch, 
-            stop_batch, 
+            run_batch,
+            stop_batch,
             run_auto_discovery,
             abort_auto_discovery
         ])
