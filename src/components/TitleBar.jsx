@@ -1,14 +1,19 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
 
-const appWindow = getCurrentWindow();
+export function TitleBar({ isActive, showLoadingUI, isMinimizeToTray }) {
+  const handleMinimize = (e) => {
+    e.stopPropagation();
+    getCurrentWindow().minimize();
+  };
 
-export function TitleBar({ isActive, showLoadingUI }) {
-  const handlePointerDown = (e) => {
-    if (e.buttons === 1 && 
-        !e.target.closest(".titlebar-button") && 
-        !e.target.closest(".power-button") &&
-        !e.target.closest(".strategy-select")) {
-      appWindow.startDragging();
+  const handleClose = async (e) => {
+    e.stopPropagation();
+    
+    if (isMinimizeToTray !== false) {
+      await getCurrentWindow().close();
+    } else {
+      await invoke("exit_app");
     }
   };
 
@@ -16,21 +21,22 @@ export function TitleBar({ isActive, showLoadingUI }) {
     <div 
       className="titlebar" 
       data-tauri-drag-region
-      onPointerDown={handlePointerDown}
     >
-      <div data-tauri-drag-region className="titlebar-drag-region"></div>
+      <div className="titlebar-drag-region" data-tauri-drag-region></div>
       
       <div className="titlebar-controls">
         <div 
           className="titlebar-button" 
-          onClick={() => appWindow.minimize()}
+          onClick={handleMinimize}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           &#8211;
         </div>
         <div 
           className="titlebar-button" 
           id="titlebar-close" 
-          onClick={() => appWindow.close()}
+          onClick={handleClose}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           &#215;
         </div>

@@ -1,0 +1,37 @@
+TITLE: Add settings screen and autostart support
+BODY: Add a new Settings screen with UI and styles, persist user preferences, and expose Windows autostart control via Tauri.
+
+- Tauri (src-tauri/src/lib.rs): add commands is_autostart_enabled and set_autostart that read/write the HKCU Run registry entry for the app (Windows).
+- UI: add SettingsScreen component and related CSS (.settings-screen, toggle switch styles, layout). Integrate screen navigation into App.jsx and show settings in place of main content when selected.
+- PowerButton: expose settings button click to open Settings screen.
+- Hooks (useService.js): persist selected strategy, theme, and autoconnect in localStorage; load autostart state from backend; add toggleAutostart (calls Tauri set_autostart) and toggleAutoConnect; implement one-time auto-connect behavior on launch; expose currentScreen state and setters.
+- Minor adjustments: theme transition timing tweaks and some CSS variable reordering.
+
+This adds end-to-end support for toggling autostart, local settings persistence, and a dedicated settings UI.
+
+-------------------
+TITLE: Add theming, CSS variables and reveal overlay
+BODY: Introduce dark/light theme CSS variables and replace hardcoded colors across App.css; add .theme-light and a theme-reveal-overlay with circular reveal animation for smooth theme transitions. Add theme state to useService hook and expose setTheme, update App.jsx to manage a transitionOverlay and handleThemeToggle (animates reveal, switches theme, then fades out). Update PowerButton to accept theme/onThemeToggle and add a container ref; remove the old settings onClick placeholder and refine several transitions/variables for more stable UI behavior.
+
+-------------------
+TITLE: Bump version to 1.2.0
+BODY: Update project version to 1.2.0 in package.json, src-tauri/Cargo.toml, and tauri.conf.json to prepare for the 1.2.0 release.
+
+-------------------
+TITLE: Add tray/single-instance, block shortcuts, refactor service
+BODY: Introduce a system tray with menu and single-instance behavior, improve app lifecycle and service state management, and harden UI by blocking native shortcuts/context menu.
+
+Key changes:
+- Tauri: enable tray-icon feature, add tauri-plugin-single-instance and futures dependency in Cargo.toml; integrate single-instance plugin.
+- Add tray icon, menu items (toggle/show/quit), tray event handlers, and update_tray_status/run_strategy Tauri commands; prevent window close and hide to tray. Add helper kill_winws and improve engine extraction (unpack if directory empty).
+- Rust: optimize check_connection with concurrent requests (futures::join_all) and minor structural refactors.
+- Frontend: block context menu and many keyboard shortcuts (supports Ctrl/Cmd and stops propagation) in index.html and main.jsx to provide a native-app feel.
+- App state/hooks: add APP_STATUS constants, refactor useService to centralize process state (loading/exiting/UI), synchronize tray toggle via events, and handle discovery/run/stop flows more robustly.
+
+These changes add OS-like behavior (tray, single-instance), improve async checks and process handling, and prevent accidental keyboard actions that would interfere with the native-like UX.
+
+-------------------
+TITLE: Split UI into components; add error types
+BODY: Refactor the React UI by extracting TitleBar, StatusHeader, PowerButton, StrategySelector components and a useService hook; add STRATEGIES config and update App.jsx to use these components. Update App.css with layout/tweaks (settings button, animations, z-indexes, transitions) and minor style improvements. On the Tauri/Rust side add thiserror dependency and introduce AppError (with Serialize impl) to replace String error returns; rename and refactor commands and helpers (run_batch -> run_strategy, stop_batch -> stop_service, resolve_engine_path -> resolve_strategy_path, execute_batch -> execute_strategy) and improve error handling and network check robustness (user-agent update, target list handling). Update tauri invoke handler to export the new command names.
+
+-------------------

@@ -1,11 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap');
 
-/* БАЗОВЫЕ СТИЛИ (Прозрачность и шрифты) */
+/* --- 1. Variables & Themes --- */
 :root {
     font-family: 'Montserrat', sans-serif;
     background: transparent !important;
     
-    /* Dark Theme (Discord) */
+    /* Dark Theme (Default) */
     --bg-color: #2b2d31;
     --accent-color: #5865f2;
     --accent-color-alpha: rgba(88, 101, 242, 0.4);
@@ -19,8 +19,6 @@
     --dropdown-bg: rgba(49, 51, 56, 0.95);
     --titlebar-color: #b5bac1;
     --border-color: #2b2d31;
-    --button-bg: #404249;
-    --button-hover: #46484f;
 }
 
 .theme-light {
@@ -39,6 +37,7 @@
     --border-color: #ffffff;
 }
 
+/* --- 2. Base Styles --- */
 html, body, #root {
     margin: 0;
     padding: 0;
@@ -46,14 +45,9 @@ html, body, #root {
     width: 100vw;
     background: transparent !important;
     overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     user-select: none;
-    border: none;
 }
 
-/* КОНТЕЙНЕР ПРИЛОЖЕНИЯ (Центральная карточка) */
 .app-window {
     width: 100vw;
     height: 100vh;
@@ -62,15 +56,14 @@ html, body, #root {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    padding: 40px 15px;
+    justify-content: flex-start;
+    padding: 0;
     box-sizing: border-box;
     position: relative;
     overflow: hidden;
-    /* Removed background-color transition to avoid "ghosting" behind theme-reveal overlay */
 }
 
-/* CUSTOM TITLEBAR */
+/* --- 3. Layout: TitleBar & Screens --- */
 .titlebar {
     height: 32px;
     background: transparent;
@@ -110,206 +103,6 @@ html, body, #root {
     -webkit-app-region: no-drag;
 }
 
-.settings-button {
-    position: absolute;
-    bottom: -2px; 
-    right: -2px;
-    width: 56px;
-    height: 56px;
-    background-color: var(--button-bg);
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    z-index: 101;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    color: var(--text-secondary);
-    box-shadow: none;
-    -webkit-app-region: no-drag;
-    border: 5px solid var(--border-color);
-    box-sizing: border-box;
-}
-
-.settings-button.hidden {
-    opacity: 0;
-    transform: scale(0.6) rotate(-45deg);
-    pointer-events: none;
-    transition: all 0.13s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.settings-button:hover:not(.hidden) {
-    background-color: var(--button-hover);
-    color: var(--text-primary);
-}
-
-.settings-button svg {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.settings-button:hover:not(.hidden) svg {
-    transform: rotate(60deg) !important;
-}
-
-/* SETTINGS SCREEN */
-.settings-screen {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-    box-sizing: border-box;
-    animation: screenFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    z-index: 200;
-}
-
-@keyframes screenFadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.settings-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    margin-top: 10px;
-}
-
-.back-button {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.back-button:hover {
-    background: var(--button-bg);
-    color: var(--text-primary);
-}
-
-.settings-title {
-    color: var(--text-primary);
-    font-size: 20px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin: 0;
-}
-
-.settings-content {
-    display: flex;
-    flex-direction: column;
-    padding: 0 10px;
-}
-
-.settings-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.settings-item-wide {
-    width: 100%;
-    background: var(--strategy-bg);
-    border: 1px solid rgba(0, 0, 0, 0.02);
-    border-radius: 16px;
-    padding: 14px 18px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-sizing: border-box;
-}
-
-.theme-light .settings-item-wide {
-    border-color: rgba(0, 0, 0, 0.05);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-}
-
-.settings-item-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.settings-item-wide:hover {
-    background: var(--strategy-hover);
-}
-
-.settings-item-label {
-    color: var(--text-secondary);
-    font-size: 15px;
-    font-weight: 600;
-    text-transform: none;
-    letter-spacing: 0.02em;
-}
-
-.settings-item-wide svg {
-    flex-shrink: 0;
-    color: var(--text-secondary);
-    opacity: 0.8;
-    transition: all 0.3s ease;
-}
-
-/* TOGGLE SWITCH */
-.toggle-switch {
-    position: relative;
-    width: 44px;
-    height: 24px;
-    background: var(--button-bg);
-    border-radius: 20px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    flex-shrink: 0;
-}
-
-.toggle-switch.active {
-    background: var(--accent-color);
-    box-shadow: 0 0 10px var(--accent-color-alpha);
-}
-
-.toggle-handle {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    width: 16px;
-    height: 16px;
-    background: #ffffff;
-    border-radius: 50%;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.toggle-switch.active .toggle-handle {
-    transform: translateX(20px);
-}
-
-.settings-item-wide:hover .toggle-switch {
-    filter: brightness(1.1);
-}
-
-/* Update main content hide/show */
-.main-screen-content {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    animation: screenFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
 .titlebar-button:hover {
     color: var(--text-primary);
 }
@@ -318,7 +111,59 @@ html, body, #root {
     color: #ed4245;
 }
 
-/* ЗАГОЛОВОК И СТАТУС */
+.screen-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    flex-grow: 1;
+}
+
+.main-screen-content, .settings-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 40px 15px;
+    box-sizing: border-box;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-screen-content {
+    z-index: 40;
+}
+
+.show-main .main-screen-content {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+    filter: blur(0);
+    z-index: 60;
+}
+
+.show-settings .main-screen-content {
+    opacity: 0;
+    transform: scale(0.96);
+    pointer-events: none;
+    filter: blur(4px);
+    z-index: 40;
+}
+
+.show-settings .settings-screen {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.show-main .settings-screen {
+    opacity: 0;
+    transform: translateY(15px);
+    pointer-events: none;
+}
+
+/* --- 4. Component: Header --- */
 .header {
     text-align: center;
     width: 100%;
@@ -337,7 +182,7 @@ html, body, #root {
     overflow: hidden;
 }
 
-h1 {
+.header h1 {
     color: var(--text-primary);
     font-size: 34px; 
     margin: 0 0 2px 0;
@@ -363,12 +208,11 @@ h1 {
     opacity: 0.8;
 }
 
-/* СОСТОЯНИЕ "ВКЛЮЧЕНО" */
 .app-window.active .status-text {
     color: var(--text-primary);
 }
 
-/* ГЛАВНАЯ АНИМИРОВАННАЯ КНОПКА */
+/* --- 5. Component: Power Button & Settings Gear --- */
 .power-button-container {
     flex-grow: 1;
     display: flex;
@@ -418,22 +262,8 @@ h1 {
     will-change: opacity;
 }
 
-@keyframes iconFadeIn {
-    from { 
-        opacity: 0;
-    }
-    to { 
-        opacity: 1;
-    }
-}
-
 .app-window.active .power-button {
     background-color: var(--accent-color);
-    box-shadow: 0 0 25px var(--accent-color-alpha);
-}
-
-/* Fix shadow color for active power button if needed in light theme */
-.theme-light .app-window.active .power-button {
     box-shadow: 0 0 25px var(--accent-color-alpha);
 }
 
@@ -446,56 +276,59 @@ h1 {
     stroke-width: 2.5;
 }
 
-/* ЭФФЕКТ ЗАГРУЗКИ ПРИ ПОДБОРЕ */
 .power-button.loading {
     cursor: pointer;
     background-color: var(--button-bg);
 }
 
-/* МИНИМАЛИСТИЧНЫЙ СПИННЕР */
-.spinner {
-    width: 85px;
-    height: 85px;
-    border: 4px solid transparent;
-    border-top: 4px solid var(--text-secondary);
+.settings-button {
+    position: absolute;
+    bottom: -2px; 
+    right: -2px;
+    width: 56px;
+    height: 56px;
+    background-color: var(--button-bg);
     border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 101;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-secondary);
+    -webkit-app-region: no-drag;
+    border: 5px solid var(--border-color);
     box-sizing: border-box;
-    animation: spin 1.2s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite, fadeInOpacity 0.4s ease forwards;
 }
 
-@keyframes fadeInOpacity {
-    from { opacity: 0; }
-    to { opacity: 1; }
+.settings-button.hidden {
+    opacity: 0;
+    transform: scale(0.6) rotate(-45deg);
+    pointer-events: none;
+    transition: all 0.13s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes fadeOutOpacity {
-    from { opacity: 1; }
-    to { opacity: 0; }
+.settings-button:hover:not(.hidden) {
+    background-color: var(--button-hover);
+    color: var(--text-primary);
 }
 
-.spinner.fade-out {
-    animation: spin 1.2s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite, fadeOutOpacity 0.3s ease forwards;
+.settings-button svg {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+.settings-button:hover:not(.hidden) svg {
+    transform: rotate(60deg) !important;
 }
 
-.power-button:disabled {
-    cursor: default;
-}
-
-/* СТИЛИ ДЛЯ ВЫБОРА СТРАТЕГИИ */
+/* --- 6. Component: Strategy Selector --- */
 .strategy-container {
     width: 100%;
-    margin-bottom: 0;
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     z-index: 110;
-    margin-top: 0;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -519,11 +352,7 @@ h1 {
     border: none;
 }
 
-.strategy-select:hover:not(.open):not([style*="default"]) {
-    background-color: var(--strategy-hover);
-}
-
-.strategy-select.open {
+.strategy-select:hover:not(.open) {
     background-color: var(--strategy-hover);
 }
 
@@ -531,9 +360,6 @@ h1 {
     color: var(--text-secondary);
     font-size: 18px;
     font-weight: 600;
-    text-transform: none;
-    letter-spacing: -0.02em;
-    transition: color 0.2s ease;
 }
 
 .chevron-icon {
@@ -544,19 +370,9 @@ h1 {
     opacity: 0.5;
 }
 
-.strategy-select:hover:not([style*="default"]) .selected-label,
-.strategy-select.open .selected-label {
-    color: var(--text-secondary);
-}
-
-.strategy-select:hover:not([style*="default"]) .chevron-icon,
-.strategy-select.open .chevron-icon {
-    color: var(--text-secondary);
-    opacity: 1;
-}
-
 .strategy-select.open .chevron-icon {
     transform: rotate(180deg);
+    opacity: 1;
 }
 
 .strategy-dropdown {
@@ -574,11 +390,6 @@ h1 {
     pointer-events: none;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-.strategy-dropdown::-webkit-scrollbar {
-    display: none;
 }
 
 .strategy-dropdown.open {
@@ -611,7 +422,176 @@ h1 {
     background-color: rgba(255, 0, 0, 0.1);
 }
 
-/* THEME TRANSITION OVERLAY */
+/* --- 7. Component: Settings Screen --- */
+.settings-screen {
+    z-index: 50;
+    background-color: var(--bg-color);
+}
+
+.settings-header {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 35px;
+    padding-left: 20px;
+    pointer-events: none;
+}
+
+.settings-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    pointer-events: auto;
+}
+
+.back-button {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: -8px;
+    -webkit-app-region: no-drag;
+}
+
+.back-button:hover {
+    background: var(--button-bg);
+    color: var(--text-primary);
+}
+
+.settings-title {
+    color: var(--text-primary);
+    font-size: 20px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.settings-content {
+    display: flex;
+    flex-direction: column;
+    padding: 0 10px;
+}
+
+.settings-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.settings-item-wide {
+    width: 100%;
+    background: var(--strategy-bg);
+    border-radius: 16px;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+    border: 1px solid transparent;
+}
+
+.settings-item-wide:hover {
+    background: var(--strategy-hover);
+}
+
+.settings-item-label {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.2;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.settings-item-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+    margin-right: 16px;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: var(--button-bg);
+    border-radius: 20px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.toggle-switch.active {
+    background: var(--accent-color);
+    box-shadow: 0 0 10px var(--accent-color-alpha);
+}
+
+.toggle-handle {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 16px;
+    height: 16px;
+    background: #ffffff;
+    border-radius: 50%;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-switch.active .toggle-handle {
+    transform: translateX(20px);
+}
+
+/* --- 8. Animations & Effects --- */
+@keyframes iconFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes fadeInOpacity {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOutOpacity {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes circularReveal {
+    0% { transform: translate(-50%, -50%) scale(0); }
+    100% { transform: translate(-50%, -50%) scale(600); }
+}
+
+.spinner {
+    width: 85px;
+    height: 85px;
+    border: 4px solid transparent;
+    border-top: 4px solid var(--text-secondary);
+    border-radius: 50%;
+    box-sizing: border-box;
+    animation: spin 1.2s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite, fadeInOpacity 0.4s ease forwards;
+}
+
+.spinner.fade-out {
+    animation: spin 1.2s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite, fadeOutOpacity 0.3s ease forwards;
+}
+
 .theme-reveal-overlay {
     position: fixed;
     top: 0;
@@ -621,9 +601,8 @@ h1 {
     z-index: 999;
     pointer-events: none;
     overflow: hidden;
-    /* Smooth fade out when theme transition is complete */
     transition: opacity 0.4s ease-out;
-    border-radius: 20px; /* Match app-window border radius */
+    border-radius: 20px;
 }
 
 .theme-reveal-overlay.fade-out {
@@ -641,17 +620,4 @@ h1 {
 
 .theme-reveal-circle.animate {
     animation: circularReveal 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes circularReveal {
-    0% {
-        transform: translate(-50%, -50%) scale(0);
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(600); /* Slightly larger to be safe */
-    }
-}
-
-.settings-item:hover svg {
-    transform: scale(1.1);
 }

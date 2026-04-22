@@ -26,6 +26,8 @@ function App() {
     toggleAutostart,
     isAutoConnect,
     toggleAutoConnect,
+    isMinimizeToTray,
+    toggleMinimizeToTray,
     currentScreen,
     setCurrentScreen
   } = useService();
@@ -70,9 +72,9 @@ function App() {
       className={`app-window ${theme === "light" ? "theme-light" : ""} ${isActive ? "active" : ""} ${showLoadingUI ? "detecting" : ""}`} 
       id="appWindow"
     >
-      <TitleBar isActive={isActive} showLoadingUI={showLoadingUI} />
+      <TitleBar isActive={isActive} showLoadingUI={showLoadingUI} isMinimizeToTray={isMinimizeToTray} />
 
-      {currentScreen === "main" ? (
+      <div className={`screen-container ${currentScreen === "main" ? "show-main" : "show-settings"}`}>
         <div className="main-screen-content">
           <StatusHeader status={status} dots={dots} />
 
@@ -97,7 +99,7 @@ function App() {
             setIsDropdownOpen={setIsDropdownOpen}
           />
         </div>
-      ) : (
+
         <SettingsScreen 
           onBack={() => setCurrentScreen("main")} 
           onThemeToggle={handleThemeToggle}
@@ -106,8 +108,10 @@ function App() {
           onAutostartToggle={toggleAutostart}
           isAutoConnect={isAutoConnect}
           onAutoConnectToggle={toggleAutoConnect}
+          isMinimizeToTray={isMinimizeToTray}
+          onMinimizeToTrayToggle={toggleMinimizeToTray}
         />
-      )}
+      </div>
 
       {transitionOverlay && (
         <div className={`theme-reveal-overlay ${transitionOverlay.isFading ? "fade-out" : ""}`}>

@@ -5,19 +5,26 @@ export function SettingsScreen({
   isAutostart, 
   onAutostartToggle,
   isAutoConnect,
-  onAutoConnectToggle
+  onAutoConnectToggle,
+  isMinimizeToTray,
+  onMinimizeToTrayToggle
 }) {
   return (
     <div className="settings-screen">
       <div className="settings-header">
-        <button className="back-button" onClick={onBack}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-        </button>
-        <h2 className="settings-title">Настройки</h2>
-        <div style={{ width: 24 }}></div> {/* Spacer for symmetry */}
+        <div className="settings-header-left">
+          <button 
+            className="back-button" 
+            onClick={onBack}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+          </button>
+          <h2 className="settings-title">Настройки</h2>
+        </div>
       </div>
 
       <div className="settings-content">
@@ -45,6 +52,15 @@ export function SettingsScreen({
               <span className="settings-item-label">Включить при запуске</span>
             </div>
             <div className={`toggle-switch ${isAutoConnect ? "active" : ""}`}>
+              <div className="toggle-handle"></div>
+            </div>
+          </div>
+
+          <div className="settings-item-wide" onClick={onMinimizeToTrayToggle}>
+            <div className="settings-item-left">
+              <span className="settings-item-label">Сворачивать в трей</span>
+            </div>
+            <div className={`toggle-switch ${isMinimizeToTray ? "active" : ""}`}>
               <div className="toggle-handle"></div>
             </div>
           </div>

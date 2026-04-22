@@ -21,12 +21,20 @@ export const STRATEGIES = [
   { label: "Simple Fake ALT 2", value: "general (SIMPLE FAKE ALT2)_silent.bat" },
 ];
 
+export const TIMEOUTS = {
+  UI_SPINNER_DELAY: 500,
+  AUTO_CONNECT_DELAY: 1000,
+  TRAY_SYNC_DELAY: 500,
+  PROCESS_FINALIZE_DELAY: 300,
+  DOTS_ANIMATION_INTERVAL: 800,
+};
+
 export const APP_STATUS = {
-  READY: "Zapret готов к запуску",
-  DISCOVERY: "Подбор стратегии",
+  READY: () => "Zapret готов к запуску",
+  DISCOVERY: () => "Подбор стратегии",
   RUNNING: (label) => `${label} запущен`,
   MATCHED: (label) => `${label} подобран`,
-  STOPPING: "Остановка...",
+  STOPPING: () => "Остановка...",
   ERROR: (err) => `Ошибка: ${err}`,
-  DISCOVERY_ABORTED: "Поиск отменен",
+  DISCOVERY_ABORTED: () => "Поиск отменен",
 };

@@ -7,7 +7,7 @@ export function StatusHeader({ status, dots }) {
         rel="noopener noreferrer"
         className="header-link"
       >
-        <h1 data-tauri-drag-region>Zapret</h1>
+        <h1>Zapret</h1>
       </a>
       <p 
         className="status-text" 

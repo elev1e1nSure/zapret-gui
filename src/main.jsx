@@ -2,28 +2,23 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 
-// Блокировка контекстного меню
-window.addEventListener('contextmenu', (e) => e.preventDefault(), true);
+// Блокировка контекстного меню и горячих клавиш для ощущения нативного приложения
+window.addEventListener('contextmenu', (e) => e.preventDefault(), { capture: true });
 
-// Блокировка горячих клавиш для ощущения нативного приложения
 window.addEventListener('keydown', (e) => {
   const isCtrl = e.ctrlKey || e.metaKey;
-  const isShift = e.shiftKey;
-  const code = e.code;
+  const { code } = e;
 
   // Список блокируемых кодов клавиш
-  const blockedCodes = [
-    'KeyF', 'KeyG', 'KeyR', 'KeyP', 'KeyS', 'KeyU', 'KeyI', 'KeyJ', 'KeyC', 'KeyO'
-  ];
+  const blockedCodes = ['KeyF', 'KeyG', 'KeyR', 'KeyP', 'KeyS', 'KeyU', 'KeyI', 'KeyJ', 'KeyC', 'KeyO'];
+  const blockedSingles = ['F3', 'F5', 'F12'];
 
-  if (
-    // Одиночные клавиши
-    code === 'F5' || code === 'F12' || code === 'F3' ||
-    // Ctrl + Key
+  const shouldBlock = 
+    blockedSingles.includes(code) || 
     (isCtrl && blockedCodes.includes(code)) ||
-    // Alt + Стрелки
-    (e.altKey && (code === 'ArrowLeft' || code === 'ArrowRight'))
-  ) {
+    (e.altKey && (code === 'ArrowLeft' || code === 'ArrowRight'));
+
+  if (shouldBlock) {
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
