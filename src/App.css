@@ -4,6 +4,41 @@
 :root {
     font-family: 'Montserrat', sans-serif;
     background: transparent !important;
+    
+    /* Dark Theme (Discord) */
+    --bg-color: #2b2d31;
+    --accent-color: #5865f2;
+    --accent-color-alpha: rgba(88, 101, 242, 0.4);
+    --accent-hover: #616df4;
+    --button-bg: #404249;
+    --button-hover: #46484f;
+    --text-primary: #f2f3f5;
+    --text-secondary: #b5bac1;
+    --text-primary: #f2f3f5;
+    --text-secondary: #b5bac1;
+    --strategy-bg: #313338;
+    --strategy-hover: #383a40;
+    --button-bg: #404249;
+    --button-hover: #46484f;
+    --dropdown-bg: rgba(49, 51, 56, 0.95);
+    --titlebar-color: #b5bac1;
+    --border-color: #2b2d31;
+}
+
+.theme-light {
+    --bg-color: #ffffff;
+    --accent-color: #ff0000;
+    --accent-color-alpha: rgba(255, 0, 0, 0.4);
+    --accent-hover: #df0000;
+    --button-bg: #f2f2f2;
+    --button-hover: #e5e5e5;
+    --text-primary: #0f0f0f;
+    --text-secondary: #606060;
+    --strategy-bg: #f8f8f8;
+    --strategy-hover: #eeeeee;
+    --dropdown-bg: rgba(248, 248, 248, 0.95);
+    --titlebar-color: #606060;
+    --border-color: #ffffff;
 }
 
 html, body, #root {
@@ -16,8 +51,7 @@ html, body, #root {
     display: flex;
     justify-content: center;
     align-items: center;
-    user-select: none; /* Отключить выделение текста */
-    /* Убираем любые возможные системные обводки */
+    user-select: none;
     border: none;
 }
 
@@ -25,16 +59,17 @@ html, body, #root {
 .app-window {
     width: 100vw;
     height: 100vh;
-    background-color: #2b2d31; /* Цвет фона Discord */
+    background-color: var(--bg-color);
     border-radius: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    padding: 40px 15px; /* Сбалансированные верхние и нижние отступы */
+    padding: 40px 15px;
     box-sizing: border-box;
     position: relative;
     overflow: hidden;
+    /* Removed background-color transition to avoid "ghosting" behind theme-reveal overlay */
 }
 
 /* CUSTOM TITLEBAR */
@@ -71,7 +106,7 @@ html, body, #root {
     height: 32px;
     cursor: pointer;
     transition: all 0.2s ease;
-    color: #b5bac1;
+    color: var(--titlebar-color);
     font-family: Arial, sans-serif;
     font-size: 20px;
     -webkit-app-region: no-drag;
@@ -81,9 +116,9 @@ html, body, #root {
     position: absolute;
     bottom: -2px; 
     right: -2px;
-    width: 56px; /* Уменьшил (было 68px) */
+    width: 56px;
     height: 56px;
-    background-color: #404249;
+    background-color: var(--button-bg);
     border-radius: 50%;
     display: flex;
     justify-content: center;
@@ -91,10 +126,10 @@ html, body, #root {
     cursor: pointer;
     z-index: 101;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    color: #b5bac1;
+    color: var(--text-secondary);
     box-shadow: none;
     -webkit-app-region: no-drag;
-    border: 5px solid #2b2d31; /* Увеличил обводку до 6px */
+    border: 5px solid var(--border-color);
     box-sizing: border-box;
 }
 
@@ -102,29 +137,30 @@ html, body, #root {
     opacity: 0;
     transform: scale(0.6) rotate(-45deg);
     pointer-events: none;
-    transition: all 0.13s cubic-bezier(0.4, 0, 0.2, 1); /* Быстрее при исчезновении */
+    transition: all 0.13s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .settings-button:hover:not(.hidden) {
-    background-color: #4f5159; /* Ещё чуть светлее при наведении */
-    color: #ffffff;
-    /* Убрал transform: scale(1.05) */
-}
-
-.settings-button svg {
-    transition: transform 0.4s ease;
+    background-color: var(--button-hover);
+    color: var(--text-primary);
 }
 
 .settings-button:hover:not(.hidden) svg {
-    transform: rotate(45deg);
+    transform: rotate(45deg) !important;
+}.settings-button svg {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-button:hover:not(.hidden) svg {
+    transform: rotate(60deg) !important;
 }
 
 .titlebar-button:hover {
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .titlebar-button#titlebar-close:hover {
-    color: #ed4245; /* Красный при наведении на закрытие */
+    color: #ed4245;
 }
 
 /* ЗАГОЛОВОК И СТАТУС */
@@ -147,7 +183,7 @@ html, body, #root {
 }
 
 h1 {
-    color: #f2f3f5;
+    color: var(--text-primary);
     font-size: 34px; 
     margin: 0 0 2px 0;
     font-weight: 800;
@@ -159,11 +195,11 @@ h1 {
 }
 
 .header-link:hover h1 {
-    color: #5865f2;
+    color: var(--accent-color);
 }
 
 .status-text {
-    color: #dbdee1; 
+    color: var(--text-secondary); 
     font-size: 13px;
     margin: 0;
     transition: color 0.3s ease;
@@ -174,7 +210,7 @@ h1 {
 
 /* СОСТОЯНИЕ "ВКЛЮЧЕНО" */
 .app-window.active .status-text {
-    color: #E0E0E0;
+    color: var(--text-primary);
 }
 
 /* ГЛАВНАЯ АНИМИРОВАННАЯ КНОПКА */
@@ -197,35 +233,32 @@ h1 {
     width: 160px;
     height: 160px;
     border-radius: 50%;
-    background-color: #404249;
+    background-color: var(--button-bg);
     border: none;
     cursor: pointer;
     position: relative;
-    /* Плавный переход только для нужных свойств, убираем "дерганый" overshoot easing */
     transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
                 box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     justify-content: center;
     align-items: center;
     box-shadow: 0 0 0 rgba(88, 101, 242, 0);
-    /* Аппаратное ускорение для стабильности */
     transform: translateZ(0);
     will-change: background-color, box-shadow;
 }
 
 .power-button:hover:not(.loading) {
-    background-color: #46484f;
+    background-color: var(--button-hover);
 }
 
 .power-icon {
     width: 85px;
     height: 85px;
-    stroke: #b5bac1;
+    stroke: var(--text-secondary);
     stroke-width: 2.2;
     fill: none;
     transition: stroke 0.3s ease;
     animation: iconFadeIn 0.3s ease forwards;
-    /* Убираем все трансформации, которые могут вызывать рывки при округлении пикселей */
     backface-visibility: hidden;
     will-change: opacity;
 }
@@ -240,13 +273,17 @@ h1 {
 }
 
 .app-window.active .power-button {
-    background-color: #5865f2;
-    /* Убираем scale трансформацию, оставляем только тень для стабильности позиции */
-    box-shadow: 0 0 25px rgba(88, 101, 242, 0.4);
+    background-color: var(--accent-color);
+    box-shadow: 0 0 25px var(--accent-color-alpha);
+}
+
+/* Fix shadow color for active power button if needed in light theme */
+.theme-light .app-window.active .power-button {
+    box-shadow: 0 0 25px var(--accent-color-alpha);
 }
 
 .app-window.active .power-button:hover {
-    background-color: #616df4;
+    background-color: var(--accent-hover);
 }
 
 .app-window.active .power-icon {
@@ -257,7 +294,7 @@ h1 {
 /* ЭФФЕКТ ЗАГРУЗКИ ПРИ ПОДБОРЕ */
 .power-button.loading {
     cursor: pointer;
-    background-color: #404249;
+    background-color: var(--button-bg);
 }
 
 /* МИНИМАЛИСТИЧНЫЙ СПИННЕР */
@@ -265,10 +302,9 @@ h1 {
     width: 85px;
     height: 85px;
     border: 4px solid transparent;
-    border-top: 4px solid #b5bac1;
+    border-top: 4px solid var(--text-secondary);
     border-radius: 50%;
-    box-sizing: border-box; /* Чтобы размер вместе с границей был 85x85 */
-    /* Анимируем только прозрачность, чтобы не конфликтовать с transform в spin */
+    box-sizing: border-box;
     animation: spin 1.2s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite, fadeInOpacity 0.4s ease forwards;
 }
 
@@ -303,7 +339,7 @@ h1 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    z-index: 110; /* Поднял выше кнопки настроек (101) */
+    z-index: 110;
     margin-top: 0;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -316,7 +352,7 @@ h1 {
 
 .strategy-select {
     width: auto;
-    background-color: #313338;
+    background-color: var(--strategy-bg);
     border-radius: 12px;
     padding: 14px 28px;
     display: flex;
@@ -329,15 +365,15 @@ h1 {
 }
 
 .strategy-select:hover:not(.open):not([style*="default"]) {
-    background-color: #383a40;
+    background-color: var(--strategy-hover);
 }
 
 .strategy-select.open {
-    background-color: #3f4147;
+    background-color: var(--strategy-hover);
 }
 
 .selected-label {
-    color: #b5bac1;
+    color: var(--text-secondary);
     font-size: 18px;
     font-weight: 600;
     text-transform: none;
@@ -348,18 +384,20 @@ h1 {
 .chevron-icon {
     width: 18px;
     height: 18px;
-    color: #4f545c;
+    color: var(--text-secondary);
     transition: all 0.2s ease;
+    opacity: 0.5;
 }
 
 .strategy-select:hover:not([style*="default"]) .selected-label,
 .strategy-select.open .selected-label {
-    color: #b5bac1;
+    color: var(--text-secondary);
 }
 
 .strategy-select:hover:not([style*="default"]) .chevron-icon,
 .strategy-select.open .chevron-icon {
-    color: #b5bac1;
+    color: var(--text-secondary);
+    opacity: 1;
 }
 
 .strategy-select.open .chevron-icon {
@@ -372,7 +410,7 @@ h1 {
     width: 240px;
     max-height: 180px;
     overflow-y: auto;
-    background-color: rgba(49, 51, 56, 0.95);
+    background-color: var(--dropdown-bg);
     backdrop-filter: blur(10px);
     border-radius: 12px;
     padding: 6px;
@@ -397,7 +435,7 @@ h1 {
 .strategy-option {
     padding: 10px 12px;
     border-radius: 4px;
-    color: #b5bac1;
+    color: var(--text-secondary);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -405,11 +443,60 @@ h1 {
 }
 
 .strategy-option:hover {
-    background-color: #404249;
-    color: #ffffff;
+    background-color: var(--button-bg);
+    color: var(--text-primary);
 }
 
 .strategy-option.active {
     background-color: rgba(88, 101, 242, 0.15);
-    color: #5865f2;
+    color: var(--accent-color);
+}
+
+.theme-light .strategy-option.active {
+    background-color: rgba(255, 0, 0, 0.1);
+}
+
+/* THEME TRANSITION OVERLAY */
+.theme-reveal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 999;
+    pointer-events: none;
+    overflow: hidden;
+    /* Smooth fade out when theme transition is complete */
+    transition: opacity 0.4s ease-out;
+    border-radius: 20px; /* Match app-window border radius */
+}
+
+.theme-reveal-overlay.fade-out {
+    opacity: 0;
+}
+
+.theme-reveal-circle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    z-index: 999;
+}
+
+.theme-reveal-circle.animate {
+    animation: circularReveal 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes circularReveal {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(600); /* Slightly larger to be safe */
+    }
+}
+
+.settings-item:hover svg {
+    transform: scale(1.1);
 }

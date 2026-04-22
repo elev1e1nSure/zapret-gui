@@ -8,6 +8,7 @@ export function useService() {
   const [isActive, setIsActive] = useState(false);
   const [status, setStatus] = useState(APP_STATUS.READY);
   const [selectedStrategy, setSelectedStrategy] = useState("auto");
+  const [theme, setTheme] = useState("dark");
   
   // Состояния процесса (загрузка, выход, UI)
   const [processState, setProcessState] = useState({
@@ -159,6 +160,8 @@ export function useService() {
     isDropdownOpen,
     setIsDropdownOpen,
     toggleService,
-    activeStrategyLabel
+    activeStrategyLabel,
+    theme,
+    setTheme
   };
 }
