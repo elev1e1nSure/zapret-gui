@@ -206,6 +206,50 @@ async fn update_tray_status(state: State<'_, AppState>, is_active: bool) -> Resu
     Ok(())
 }
 
+#[tauri::command]
+async fn is_autostart_enabled() -> bool {
+    let exe_path = match std::env::current_exe() {
+        Ok(path) => path.to_string_lossy().into_owned(),
+        Err(_) => return false,
+    };
+    
+    let output = Command::new("reg")
+        .args(["query", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "/v", "ZapretGUI"])
+        .creation_flags(CREATE_NO_WINDOW)
+        .output();
+    
+    if let Ok(out) = output {
+        if out.status.success() {
+            let s = String::from_utf8_lossy(&out.stdout);
+            return s.contains(&exe_path);
+        }
+    }
+    false
+}
+
+#[tauri::command]
+async fn set_autostart(enable: bool) -> Result<(), String> {
+    let exe_path = std::env::current_exe()
+        .map_err(|e| e.to_string())?
+        .to_string_lossy()
+        .into_owned();
+    
+    if enable {
+        Command::new("reg")
+            .args(["add", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "/v", "ZapretGUI", "/t", "REG_SZ", "/d", &format!("\"{}\"", exe_path), "/f"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .status()
+            .map_err(|e| e.to_string())?;
+    } else {
+        Command::new("reg")
+            .args(["delete", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "/v", "ZapretGUI", "/f"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .status()
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let cancel_discovery = Arc::new(AtomicBool::new(false));
@@ -228,7 +272,9 @@ pub fn run() {
             stop_service,
             run_auto_discovery,
             abort_auto_discovery,
-            update_tray_status
+            update_tray_status,
+            is_autostart_enabled,
+            set_autostart
         ])
         .setup(|app| {
             let toggle_item = MenuItem::with_id(app, "toggle", "Включить", true, None::<&str>)?;

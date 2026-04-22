@@ -7,8 +7,49 @@ export function useService() {
   // Основные состояния сервиса
   const [isActive, setIsActive] = useState(false);
   const [status, setStatus] = useState(APP_STATUS.READY);
-  const [selectedStrategy, setSelectedStrategy] = useState("auto");
-  const [theme, setTheme] = useState("dark");
+  const [selectedStrategy, setSelectedStrategy] = useState(() => {
+    return localStorage.getItem("zapret_strategy") || "auto";
+  });
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem("zapret_theme") || "dark";
+  });
+  const [isAutostart, setIsAutostart] = useState(false);
+  const [isAutoConnect, setIsAutoConnect] = useState(() => {
+    return localStorage.getItem("zapret_autoconnect") === "true";
+  });
+  const [currentScreen, setCurrentScreen] = useState("main"); // "main" or "settings"
+
+  // Сохранение настроек
+  useEffect(() => {
+    localStorage.setItem("zapret_strategy", selectedStrategy);
+  }, [selectedStrategy]);
+
+  useEffect(() => {
+    localStorage.setItem("zapret_theme", theme);
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem("zapret_autoconnect", isAutoConnect);
+  }, [isAutoConnect]);
+
+  // Загрузка и управление автозапуском
+  useEffect(() => {
+    invoke("is_autostart_enabled").then(setIsAutostart).catch(() => {});
+  }, []);
+
+  const toggleAutostart = async () => {
+    try {
+      const newState = !isAutostart;
+      await invoke("set_autostart", { enable: newState });
+      setIsAutostart(newState);
+    } catch (error) {
+      console.error("Failed to toggle autostart:", error);
+    }
+  };
+
+  const toggleAutoConnect = () => {
+    setIsAutoConnect(prev => !prev);
+  };
   
   // Состояния процесса (загрузка, выход, UI)
   const [processState, setProcessState] = useState({
@@ -148,6 +189,24 @@ export function useService() {
     };
   }, [toggleService]);
 
+  // Автоподключение при запуске
+  useEffect(() => {
+    const autoConnectOnLaunch = async () => {
+      if (isAutoConnect && !isActive && !processState.isLoading) {
+        // Принудительно ставим стратегию "auto" для автоподбора, как просил пользователь
+        setSelectedStrategy("auto");
+        
+        // Даем небольшую паузу для инициализации системы перед запуском
+        setTimeout(() => {
+          toggleService();
+        }, 1000);
+      }
+    };
+    
+    autoConnectOnLaunch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Только один раз при монтировании
+
   return {
     isActive,
     status,
@@ -162,6 +221,12 @@ export function useService() {
     toggleService,
     activeStrategyLabel,
     theme,
-    setTheme
+    setTheme,
+    isAutostart,
+    toggleAutostart,
+    isAutoConnect,
+    toggleAutoConnect,
+    currentScreen,
+    setCurrentScreen
   };
 }

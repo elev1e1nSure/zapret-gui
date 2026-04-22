@@ -4,6 +4,7 @@ import { TitleBar } from "./components/TitleBar";
 import { StatusHeader } from "./components/StatusHeader";
 import { PowerButton } from "./components/PowerButton";
 import { StrategySelector } from "./components/StrategySelector";
+import { SettingsScreen } from "./components/SettingsScreen";
 import "./App.css";
 
 function App() {
@@ -20,7 +21,13 @@ function App() {
     setIsDropdownOpen,
     toggleService,
     theme,
-    setTheme
+    setTheme,
+    isAutostart,
+    toggleAutostart,
+    isAutoConnect,
+    toggleAutoConnect,
+    currentScreen,
+    setCurrentScreen
   } = useService();
 
   const [transitionOverlay, setTransitionOverlay] = useState(null);
@@ -41,12 +48,12 @@ function App() {
       isFading: false
     });
 
-    // Step 1: Switch the theme state when the circle covers enough area (~400ms)
+    // Step 1: Switch the theme state when the circle covers enough area (~450ms)
     setTimeout(() => {
       setTheme(newTheme);
     }, 450);
 
-    // Step 2: Start fading out the overlay (~800ms)
+    // Step 2: Start fading out the overlay (~850ms)
     setTimeout(() => {
       setTransitionOverlay(prev => prev ? { ...prev, isFading: true } : null);
     }, 850);
@@ -65,28 +72,42 @@ function App() {
     >
       <TitleBar isActive={isActive} showLoadingUI={showLoadingUI} />
 
-      <StatusHeader status={status} dots={dots} />
+      {currentScreen === "main" ? (
+        <div className="main-screen-content">
+          <StatusHeader status={status} dots={dots} />
 
-      <PowerButton 
-        isActive={isActive}
-        isLoading={isLoading}
-        showLoadingUI={showLoadingUI}
-        isExiting={isExiting}
-        isDropdownOpen={isDropdownOpen}
-        toggleService={toggleService}
-        theme={theme}
-        onThemeToggle={handleThemeToggle}
-      />
+          <PowerButton 
+            isActive={isActive}
+            isLoading={isLoading}
+            showLoadingUI={showLoadingUI}
+            isExiting={isExiting}
+            isDropdownOpen={isDropdownOpen}
+            toggleService={toggleService}
+            theme={theme}
+            onSettingsClick={() => setCurrentScreen("settings")}
+          />
 
-      <StrategySelector 
-        selectedStrategy={selectedStrategy}
-        setSelectedStrategy={setSelectedStrategy}
-        isActive={isActive}
-        isLoading={isLoading}
-        isExiting={isExiting}
-        isDropdownOpen={isDropdownOpen}
-        setIsDropdownOpen={setIsDropdownOpen}
-      />
+          <StrategySelector 
+            selectedStrategy={selectedStrategy}
+            setSelectedStrategy={setSelectedStrategy}
+            isActive={isActive}
+            isLoading={isLoading}
+            isExiting={isExiting}
+            isDropdownOpen={isDropdownOpen}
+            setIsDropdownOpen={setIsDropdownOpen}
+          />
+        </div>
+      ) : (
+        <SettingsScreen 
+          onBack={() => setCurrentScreen("main")} 
+          onThemeToggle={handleThemeToggle}
+          theme={theme}
+          isAutostart={isAutostart}
+          onAutostartToggle={toggleAutostart}
+          isAutoConnect={isAutoConnect}
+          onAutoConnectToggle={toggleAutoConnect}
+        />
+      )}
 
       {transitionOverlay && (
         <div className={`theme-reveal-overlay ${transitionOverlay.isFading ? "fade-out" : ""}`}>
