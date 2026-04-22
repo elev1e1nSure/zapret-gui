@@ -13,9 +13,9 @@ function App() {
   const [selectedStrategy, setSelectedStrategy] = useState("auto");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [dots, setDots] = useState("");
+  const [isExiting, setIsExiting] = useState(false);
 
   const dropdownRef = useRef(null);
-  const activeItemRef = useRef(null);
   const abortControllerRef = useRef(false);
 
   const strategies = [
@@ -77,7 +77,6 @@ function App() {
 
     if (isDropdownOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      activeItemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
 
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -86,14 +85,20 @@ function App() {
   const abortDiscovery = async () => {
     console.log("Aborting auto discovery...");
     abortControllerRef.current = true;
+    setIsExiting(true);
+    setStatus("Zapret готов к запуску"); // Обновляем текст мгновенно
+
     try {
       await invoke("abort_auto_discovery");
     } catch (error) {
       console.error("Failed to abort:", error);
     }
-    setIsLoading(false);
-    setShowLoadingUI(false);
-    setStatus("Поиск прерван");
+    
+    setTimeout(() => {
+      setIsLoading(false);
+      setShowLoadingUI(false);
+      setIsExiting(false);
+    }, 300);
   };
 
   const toggleService = async () => {
@@ -104,15 +109,22 @@ function App() {
 
     if (isActive) {
       setIsLoading(true);
+      setIsExiting(true);
+      setStatus("Zapret готов к запуску"); // Обновляем текст мгновенно
+
       try {
         await invoke("stop_batch");
-        setIsActive(false);
-        setStatus("Zapret остановлен");
+        setTimeout(() => {
+          setIsActive(false);
+          setIsLoading(false);
+          setShowLoadingUI(false);
+          setIsExiting(false);
+        }, 300);
       } catch (error) {
         console.error("Failed to stop batch:", error);
         setStatus(`Ошибка остановки: ${error}`);
-      } finally {
         setIsLoading(false);
+        setIsExiting(false);
       }
       return;
     }
@@ -213,7 +225,7 @@ function App() {
           onClick={toggleService}
         >
           {showLoadingUI ? (
-            <div className="spinner"></div>
+            <div className={`spinner ${isExiting ? "fade-out" : ""}`}></div>
           ) : (
             <svg
               className="power-icon"
@@ -251,7 +263,6 @@ function App() {
           {strategies.map((strategy) => (
             <div 
               key={strategy.value}
-              ref={selectedStrategy === strategy.value ? activeItemRef : null}
               className={`strategy-option ${selectedStrategy === strategy.value ? "active" : ""}`}
               onClick={() => selectStrategy(strategy.value)}
             >

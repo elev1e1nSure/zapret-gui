@@ -149,6 +149,18 @@ h1 {
     stroke-width: 2.2; /* Еще чуть изящнее при большем размере */
     fill: none;
     transition: stroke 0.3s ease;
+    animation: iconFadeIn 0.5s ease forwards;
+}
+
+@keyframes iconFadeIn {
+    from { 
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to { 
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .app-window.active .power-button {
@@ -179,7 +191,22 @@ h1 {
     border: 4px solid transparent;
     border-top: 4px solid #b5bac1;
     border-radius: 50%;
-    animation: spin 1.2s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
+    /* Анимируем только прозрачность, чтобы не конфликтовать с transform в spin */
+    animation: spin 1.2s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite, fadeInOpacity 0.4s ease forwards;
+}
+
+@keyframes fadeInOpacity {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOutOpacity {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+.spinner.fade-out {
+    animation: spin 1.2s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite, fadeOutOpacity 0.3s ease forwards;
 }
 
 @keyframes spin {
@@ -262,11 +289,10 @@ h1 {
     width: 240px; /* Чуть шире под новую кнопку */
     max-height: 180px;
     overflow-y: auto;
-    background-color: #313338; /* Холодный Discord */
-    border-radius: 8px;
+    background-color: rgba(49, 51, 56, 0.95); /* Полупрозрачный для эффекта стекла */
+    backdrop-filter: blur(10px); /* Минималистичное размытие вместо тени */
+    border-radius: 12px;
     padding: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); 
-    border: 1px solid rgba(255, 255, 255, 0.05);
     
     /* Анимация появления и исчезновения */
     opacity: 0;
@@ -294,6 +320,7 @@ h1 {
     border-radius: 4px;
     color: #b5bac1;
     font-size: 13px;
+    font-weight: 500; /* Увеличили жирность с дефолтных 400 до 500 */
     cursor: pointer;
     transition: all 0.1s ease;
 }

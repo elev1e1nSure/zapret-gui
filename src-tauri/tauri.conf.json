@@ -35,7 +35,8 @@
         "fullscreen": false,
         "maximizable": false,
         "decorations": false,
-        "transparent": true
+        "transparent": true,
+        "devtools": false
       }
     ],
     "security": {
