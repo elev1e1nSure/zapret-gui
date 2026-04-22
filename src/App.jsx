@@ -243,9 +243,11 @@ function App() {
           className={`strategy-select ${isDropdownOpen ? "open" : ""}`}
           onClick={(e) => {
             e.stopPropagation();
-            !isActive && setIsDropdownOpen(!isDropdownOpen);
+            if (!isActive && !isLoading) {
+              setIsDropdownOpen(!isDropdownOpen);
+            }
           }}
-          style={{ cursor: isActive ? "default" : "pointer" }}
+          style={{ cursor: (isActive || isLoading) ? "default" : "pointer" }}
         >
           <span className="selected-label">
             {currentStrategyLabel}
