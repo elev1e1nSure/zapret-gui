@@ -1,7 +1,7 @@
 # Zapret-GUI
 
-![Main Window](./assets/screen1.png)
-![Strategy Selector](./assets/screen2.png)
+![Main Window Unactive](./assets/screen1.png)
+![Main Window Active](./assets/screen2.png)
 
 Простая оболочка для [zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube). Больше не нужно вручную перебирать батники — приложение само запустит нужную стратегию или найдёт рабочую самостоятельно.
 
