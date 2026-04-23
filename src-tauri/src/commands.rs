@@ -108,6 +108,7 @@ pub async fn exit_app(handle: AppHandle) {
     if let Some(tray) = handle.tray_by_id("main_tray") {
         let _ = tray.set_visible(false);
     }
+    engine::stop_zapret();
     handle.exit(0);
 }
 
