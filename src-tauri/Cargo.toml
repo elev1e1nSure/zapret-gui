@@ -1,7 +1,7 @@
 [package]
 name = "zapret-gui"
 version = "1.3.0"
-description = "A Tauri App"
+description = "GUI wrapper for zapret-discord-youtube — simple one-click DPI bypass for Windows"
 authors = ["you"]
 edition = "2021"
 

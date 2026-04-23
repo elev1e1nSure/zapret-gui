@@ -1,4 +1,4 @@
-export function StatusHeader({ status, isDiscovery }) {
+export function StatusHeader({ status }) {
   return (
     <div className="header" data-tauri-drag-region>
       <a 
@@ -10,7 +10,7 @@ export function StatusHeader({ status, isDiscovery }) {
         <h1>Zapret</h1>
       </a>
       <p 
-        className={`status-text ${isDiscovery ? 'dots-anim' : ''}`} 
+        className="status-text"
         id="statusText" 
         data-tauri-drag-region
         key={status}

@@ -21,30 +21,41 @@ export const STRATEGIES = [
   { label: "Simple Fake ALT 2", value: "general (SIMPLE FAKE ALT2)_silent.bat" },
 ];
 
+// Injected by Vite at build time from package.json
+export const APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
+
 export const TIMEOUTS = {
-  UI_SPINNER_DELAY: 50, // Минимальная задержка для мгновенного отклика
+  UI_SPINNER_DELAY: 50,
   AUTO_CONNECT_DELAY: 1000,
-  TRAY_SYNC_DELAY: 500,
   PROCESS_FINALIZE_DELAY: 300,
-  DOTS_ANIMATION_INTERVAL: 800,
+};
+
+// Must stay in sync with CSS animation/transition durations in App.css
+export const THEME_TRANSITION = {
+  REVEAL_MS: 550,  // circularReveal animation duration
+  FADE_MS: 400,    // .theme-reveal-overlay transition duration
 };
 
 export const APP_STATUS = {
-  READY: () => "Zapret готов к запуску",
-  DISCOVERY: () => "Подбор стратегии",
-  RUNNING: (label) => `Активно: ${label}`,
-  MATCHED: (label) => `Активно: ${label}`,
+  READY: () => "Zapret не запущен",
+  DISCOVERY: (label, index, total) => {
+    if (!label) return "Подбор";
+    if (index && total) return `Подбор: ${label} (${index}/${total})`;
+    return `Подбор: ${label}`;
+  },
+  RUNNING: (label) => `${label} запущен`,
+  MATCHED: (label) => `${label} запущен`,
   STOPPING: () => "Остановка...",
   ERROR: (err) => `Ошибка: ${err}`,
   DISCOVERY_ABORTED: () => "Поиск отменен",
 };
 
 export const TOOLTIPS = {
-  AUTOSTART: "Запускает приложение автоматически при входе в Windows через Планировщик задач.",
-  AUTOCONNECT: "Автоматически включает обход блокировок сразу после запуска приложения.",
-  MINIMIZE_TRAY: "При закрытии окна приложение сворачивается в системный трей, а не закрывается полностью.",
-  GAME_FILTER: "Ограничивает работу драйвера только диапазоном портов, используемых играми, снижая нагрузку.",
+  AUTOSTART: "Приложение будет запускаться само при включении ПК. Не нужно открывать его вручную каждый раз.",
+  AUTOCONNECT: "После запуска приложение сразу включает выбранный режим, чтобы всё работало без лишних действий.",
+  MINIMIZE_TRAY: "Кнопка закрытия не выключает программу, а прячет её в трей. Удобно, если хотите, чтобы она работала в фоне.",
+  GAME_FILTER: "Убирает игровые порты из обхода, чтобы не трогать игровой трафик и избежать лагов в играх.",
   DISCOVERY_EXCLUSIONS:
-  "Выберите стратегии, которые автоподбор будет пропускать\n\n" +
-  "«ВКЛ» — включить все,\n«ВЫКЛ» — исключить все.",
+  "Здесь можно отметить стратегии, которые автоподбор должен пропускать.\n\n" +
+  "«ВКЛ» — вернуть все стратегии в автоподбор,\n«ВЫКЛ» — исключить все стратегии.",
 };

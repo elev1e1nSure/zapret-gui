@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { STRATEGIES, TOOLTIPS } from "../config";
+import { STRATEGIES, TOOLTIPS, APP_VERSION } from "../config";
 
 function TooltipIcon({ id, text, openId, setOpenId }) {
   const isVisible = openId === id;
@@ -98,12 +98,62 @@ export function SettingsScreen({
   isGameFilter,
   onGameFilterToggle,
   excludedStrategies,
-  onToggleExcluded
+  onToggleExcluded,
+  onClearCache
 }) {
   const [isStrategiesExpanded, setIsStrategiesExpanded] = useState(false);
   const [openTooltipId, setOpenTooltipId] = useState(null);
+  const [clearCacheLabel, setClearCacheLabel] = useState("Очистить кэш");
+  const [clearCacheState, setClearCacheState] = useState("idle"); // idle | success | error
+  const [isClearCacheLabelFading, setIsClearCacheLabelFading] = useState(false);
+  const clearCacheTimerRef = useRef(null);
+  const exclusionsWrapperRef = useRef(null);
+  const exclusionsContentRef = useRef(null);
   const allStrategies = STRATEGIES.filter(s => s.value !== "auto");
+
+  useEffect(() => {
+    const wrapper = exclusionsWrapperRef.current;
+    const content = exclusionsContentRef.current;
+    if (!wrapper || !content) return;
+    if (isStrategiesExpanded) {
+      wrapper.style.height = `${content.scrollHeight}px`;
+    } else {
+      wrapper.style.height = "0px";
+    }
+  }, [isStrategiesExpanded]);
   
+  // Prevent scrolling while a tooltip is open (backdrop active)
+  useEffect(() => {
+    if (!openTooltipId) return;
+
+    const prevOverflow = document.body.style.overflow;
+    const prevOverscroll = document.body.style.overscrollBehavior;
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+
+    const prevent = (e) => {
+      e.preventDefault();
+    };
+
+    window.addEventListener("wheel", prevent, { passive: false });
+    window.addEventListener("touchmove", prevent, { passive: false });
+
+    return () => {
+      window.removeEventListener("wheel", prevent);
+      window.removeEventListener("touchmove", prevent);
+      document.body.style.overflow = prevOverflow;
+      document.body.style.overscrollBehavior = prevOverscroll;
+    };
+  }, [openTooltipId]);
+
+  const setClearCacheLabelAnimated = (nextLabel) => {
+    setIsClearCacheLabelFading(true);
+    setTimeout(() => {
+      setClearCacheLabel(nextLabel);
+      requestAnimationFrame(() => setIsClearCacheLabelFading(false));
+    }, 110);
+  };
+
   const handleToggleAll = (enable) => {
     allStrategies.forEach(s => {
       const isCurrentlyExcluded = excludedStrategies.includes(s.value);
@@ -114,6 +164,40 @@ export function SettingsScreen({
       }
     });
   };
+
+  const handleClearCache = async (e) => {
+    e.stopPropagation();
+
+    try {
+      const ok = await onClearCache?.();
+      if (ok === false) {
+        throw new Error("clear-cache-failed");
+      }
+
+      setClearCacheState("success");
+      setClearCacheLabelAnimated("Очищено");
+    } catch {
+      setClearCacheState("error");
+      setClearCacheLabelAnimated("Не удалось");
+    }
+
+    if (clearCacheTimerRef.current) {
+      clearTimeout(clearCacheTimerRef.current);
+    }
+    clearCacheTimerRef.current = setTimeout(() => {
+      setClearCacheState("idle");
+      setClearCacheLabelAnimated("Очистить кэш");
+      clearCacheTimerRef.current = null;
+    }, 1600);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (clearCacheTimerRef.current) {
+        clearTimeout(clearCacheTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="settings-screen">
@@ -226,8 +310,8 @@ export function SettingsScreen({
           </svg>
         </div>
 
-        <div className={`collapsible-wrapper ${isStrategiesExpanded ? "expanded" : ""}`}>
-          <div className="collapsible-content">
+        <div className={`collapsible-wrapper ${isStrategiesExpanded ? "expanded" : ""}`} ref={exclusionsWrapperRef}>
+          <div className="collapsible-content" ref={exclusionsContentRef}>
             <div className="settings-group-actions-row">
               <div className="settings-group-actions">
                 <button className="compact-action-button" onClick={() => handleToggleAll(true)}>ВКЛ</button>
@@ -248,6 +332,19 @@ export function SettingsScreen({
             </div>
           </div>
         </div>
+
+        <div className="settings-group">
+          <div
+            className={`settings-item-wide clear-cache-item ${clearCacheState}`}
+            onClick={handleClearCache}
+          >
+            <span className={`settings-item-label centered ${isClearCacheLabelFading ? "fade" : ""}`}>
+              {clearCacheLabel}
+            </span>
+          </div>
+        </div>
+
+        <div className="settings-version">v{APP_VERSION}</div>
       </div>
     </div>
   );

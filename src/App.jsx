@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useService } from "./hooks/useService";
+import { THEME_TRANSITION } from "./config";
 import { TitleBar } from "./components/TitleBar";
 import { StatusHeader } from "./components/StatusHeader";
 import { PowerButton } from "./components/PowerButton";
@@ -16,7 +17,6 @@ function App() {
     selectedStrategy,
     setSelectedStrategy,
     isExiting,
-    isDiscovery,
     isDropdownOpen,
     setIsDropdownOpen,
     toggleService,
@@ -32,6 +32,7 @@ function App() {
     toggleGameFilter,
     excludedStrategies,
     toggleExcludedStrategy,
+    clearStrategyCache,
     currentScreen,
     setCurrentScreen
   } = useService();
@@ -46,27 +47,23 @@ function App() {
     const x = e.clientX;
     const y = e.clientY;
 
-    // Start reveal animation
-    setTransitionOverlay({
-      x,
-      y,
-      theme: newTheme,
-      isFading: false
-    });
+    const { REVEAL_MS, FADE_MS } = THEME_TRANSITION;
 
-    // Step 1: Switch theme once reveal mostly covers screen
-    setTimeout(() => setTheme(newTheme), 280);
+    setTransitionOverlay({ x, y, theme: newTheme, isFading: false });
 
-    // Step 2: Fade out overlay after reveal completes
+    // Switch theme halfway through the reveal so it's hidden under the expanding circle
+    setTimeout(() => setTheme(newTheme), Math.round(REVEAL_MS * 0.5));
+
+    // Start fading the overlay once the circle has fully expanded
     setTimeout(() => {
       setTransitionOverlay(prev => (prev ? { ...prev, isFading: true } : null));
-    }, 620);
+    }, REVEAL_MS + 65);
 
-    // Step 3: Remove overlay completely
+    // Remove overlay DOM node after fade completes
     overlayTimeoutRef.current = setTimeout(() => {
       setTransitionOverlay(null);
       overlayTimeoutRef.current = null;
-    }, 980);
+    }, REVEAL_MS + FADE_MS + 30);
   };
 
   return (
@@ -78,7 +75,7 @@ function App() {
 
       <div className={`screen-container ${currentScreen === "main" ? "show-main" : "show-settings"}`}>
         <div className="main-screen-content">
-          <StatusHeader status={status} isDiscovery={isDiscovery} />
+          <StatusHeader status={status} />
 
           <PowerButton 
             isActive={isActive}
@@ -116,6 +113,7 @@ function App() {
             onGameFilterToggle={toggleGameFilter}
             excludedStrategies={excludedStrategies}
             onToggleExcluded={toggleExcludedStrategy}
+            onClearCache={clearStrategyCache}
           />
       </div>
 
