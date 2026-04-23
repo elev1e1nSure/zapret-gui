@@ -46,3 +46,8 @@
    ```
 
 Готовый exe появится в `src-tauri/target/release/zapret-gui.exe`.
+
+## Ссылки
+
+- [zapret](https://github.com/bol-van/zapret) — оригинальный проект, первоисточник
+- [zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube) — сборка под Windows, движок которой использует это приложение
