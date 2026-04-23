@@ -22,12 +22,21 @@ jobs:
         with:
           fetch-depth: 0   # full history required by git-cliff
 
-      - name: Generate changelog for this tag
-        uses: orhun/git-cliff-action@v3
-        id: cliff
+      - name: Install git-cliff
+        uses: taiki-e/install-action@v2
         with:
-          config: cliff.toml
-          args: --latest --strip header
+          tool: git-cliff
+
+      - name: Generate changelog for this tag
+        id: cliff
+        shell: bash
+        run: |
+          content="$(git-cliff --config cliff.toml --latest --strip header)"
+          {
+            echo 'content<<EOF'
+            echo "$content"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release (draft)
         uses: softprops/action-gh-release@v2

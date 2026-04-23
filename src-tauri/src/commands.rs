@@ -37,7 +37,11 @@ pub async fn run_auto_discovery(
     strategies: Vec<String>,
     is_game_filter: bool,
 ) -> AppResult<String> {
-    tracing::info!(count = strategies.len(), game_filter = is_game_filter, "run_auto_discovery started");
+    tracing::info!(
+        count = strategies.len(),
+        game_filter = is_game_filter,
+        "run_auto_discovery started"
+    );
     state.cancel_discovery.store(false, Ordering::SeqCst);
     let engine_dir = engine::extract_engine(&handle)?;
     let client = engine::build_connection_client();
@@ -51,11 +55,14 @@ pub async fn run_auto_discovery(
 
         tracing::info!(strategy = %strategy, step = idx + 1, total, "trying strategy");
         engine::stop_zapret();
-        let _ = handle.emit("discovery-strategy", json!({
-            "strategy": strategy,
-            "index": idx + 1,
-            "total": total
-        }));
+        let _ = handle.emit(
+            "discovery-strategy",
+            json!({
+                "strategy": strategy,
+                "index": idx + 1,
+                "total": total
+            }),
+        );
         let strategy_path = engine::resolve_strategy_path_in_dir(&engine_dir, &strategy)?;
 
         if engine::execute_strategy(&handle, &strategy_path, is_game_filter).is_err() {
@@ -93,7 +100,8 @@ pub async fn run_auto_discovery(
 
     tracing::warn!("auto_discovery exhausted all strategies");
     Err(AppError::Network(
-        "Ни одна стратегия не сработала. Проверьте подключение к интернету или попробуйте ещё раз.".into(),
+        "Ни одна стратегия не сработала. Проверьте подключение к интернету или попробуйте ещё раз."
+            .into(),
     ))
 }
 

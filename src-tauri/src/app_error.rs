@@ -68,7 +68,10 @@ mod tests {
             AppError::Tray("x".into()),
         ];
         for v in variants {
-            assert!(!v.error_type().is_empty(), "variant has empty error_type: {v:?}");
+            assert!(
+                !v.error_type().is_empty(),
+                "variant has empty error_type: {v:?}"
+            );
         }
     }
 
@@ -109,7 +112,10 @@ mod tests {
             let json = serde_json::to_string(v).unwrap();
             let val: serde_json::Value = serde_json::from_str(&json).unwrap();
             assert!(val.get("type").is_some(), "missing 'type' key for {v:?}");
-            assert!(val.get("message").is_some(), "missing 'message' key for {v:?}");
+            assert!(
+                val.get("message").is_some(),
+                "missing 'message' key for {v:?}"
+            );
         }
     }
 }
