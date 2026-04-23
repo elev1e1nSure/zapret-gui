@@ -2,56 +2,84 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { STRATEGIES, TOOLTIPS, APP_VERSION } from "../config";
 
-function TooltipIcon({ id, text, openId, setOpenId }) {
+function TooltipIcon({ id, text, openId, setOpenId, theme }) {
   const isVisible = openId === id;
   const [shouldRender, setShouldRender] = useState(false);
   const iconRef = useRef(null);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
-    if (isVisible) {
-      setShouldRender(true);
-      // Используем requestAnimationFrame для синхронизации анимации появления
-      const frame = requestAnimationFrame(() => {
-        if (iconRef.current) {
-          const rect = iconRef.current.getBoundingClientRect();
-          const tooltipWidth = 220;
-          const screenWidth = window.innerWidth;
-          const padding = 40;
-          const centerBias = -14; // Slightly shift tooltips left for better balance
-          
-          const iconCenter = rect.left + rect.width / 2;
-          let desiredCenter = iconCenter + centerBias;
-          let clampedCenter = desiredCenter;
-
-          // Проверка выхода за правый край
-          if (clampedCenter + tooltipWidth / 2 > screenWidth - padding) {
-            clampedCenter = (screenWidth - padding) - tooltipWidth / 2;
-          }
-          // Проверка выхода за левый край
-          if (clampedCenter - tooltipWidth / 2 < padding) {
-            clampedCenter = padding + tooltipWidth / 2;
-          }
-
-          setCoords({
-            top: rect.top,
-            left: clampedCenter,
-            // Keep arrow exactly over the (real) icon center, even if tooltip is clamped.
-            arrowShift: iconCenter - clampedCenter
-          });
-        }
-      });
-      return () => cancelAnimationFrame(frame);
-    } else {
+    if (!isVisible) {
       const timer = setTimeout(() => setShouldRender(false), 300);
       return () => clearTimeout(timer);
     }
+
+    setShouldRender(true);
+
+    const icon = iconRef.current;
+    if (!icon) return;
+
+    const panel = icon.closest(".settings-screen");
+
+    const computePosition = () => {
+      if (!iconRef.current) return;
+      const rect = iconRef.current.getBoundingClientRect();
+      const tooltipWidth = 220;
+      const screenWidth = window.innerWidth;
+      const padding = 40;
+      const centerBias = -14;
+      const iconCenter = rect.left + rect.width / 2;
+      let clampedCenter = iconCenter + centerBias;
+      if (clampedCenter + tooltipWidth / 2 > screenWidth - padding)
+        clampedCenter = screenWidth - padding - tooltipWidth / 2;
+      if (clampedCenter - tooltipWidth / 2 < padding)
+        clampedCenter = padding + tooltipWidth / 2;
+      setCoords({ top: rect.top, left: clampedCenter, arrowShift: iconCenter - clampedCenter });
+    };
+
+    // Fire scroll + initial position in the same frame — no delay, browser smooth handles inertia
+    const frame = requestAnimationFrame(() => {
+      if (iconRef.current && panel) {
+        const iconRect = iconRef.current.getBoundingClientRect();
+        const panelRect = panel.getBoundingClientRect();
+        const TOOLTIP_HEIGHT = 160;
+        const FADE_ZONE = 36;
+        const TOP_SAFE = 8;
+
+        const estimatedTooltipTop = iconRect.top - 22 - TOOLTIP_HEIGHT;
+        let scrollDelta = 0;
+
+        if (estimatedTooltipTop < panelRect.top + TOP_SAFE) {
+          scrollDelta = estimatedTooltipTop - (panelRect.top + TOP_SAFE);
+        } else if (iconRect.bottom > panelRect.bottom - FADE_ZONE) {
+          scrollDelta = iconRect.bottom - (panelRect.bottom - FADE_ZONE);
+        }
+
+        if (Math.abs(scrollDelta) > 2) {
+          panel.scrollBy({ top: scrollDelta, behavior: "smooth" });
+        }
+      }
+      computePosition();
+    });
+
+    // Re-compute position after scroll animation settles
+    const settleTimer = setTimeout(computePosition, 420);
+
+    panel?.addEventListener("scroll", computePosition, { passive: true });
+    window.addEventListener("resize", computePosition);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(settleTimer);
+      panel?.removeEventListener("scroll", computePosition);
+      window.removeEventListener("resize", computePosition);
+    };
   }, [isVisible]);
 
   const content = (
     <>
       <div 
-        className={`tooltip-bubble ${isVisible ? "fade-in" : "fade-out"}`}
+        className={`tooltip-bubble ${isVisible ? "fade-in" : "fade-out"} ${theme === "light" ? "theme-light" : ""}`}
         style={{ 
           top: `${coords.top - 22}px`, 
           left: `${coords.left}px`,
@@ -149,8 +177,10 @@ export function SettingsScreen({
   const setClearCacheLabelAnimated = (nextLabel) => {
     setIsClearCacheLabelFading(true);
     setTimeout(() => {
+      // Both updates are batched in one commit: text changes while invisible,
+      // then the CSS transition fades it back in.
       setClearCacheLabel(nextLabel);
-      requestAnimationFrame(() => setIsClearCacheLabelFading(false));
+      setIsClearCacheLabelFading(false);
     }, 110);
   };
 
@@ -200,7 +230,7 @@ export function SettingsScreen({
   }, []);
 
   return (
-    <div className="settings-screen">
+    <div className={`settings-screen ${openTooltipId ? "tooltip-open" : ""}`}>
       {openTooltipId && (
         <div
           className="tooltip-backdrop fade-in"
@@ -239,6 +269,7 @@ export function SettingsScreen({
                 text={TOOLTIPS.AUTOSTART}
                 openId={openTooltipId}
                 setOpenId={setOpenTooltipId}
+                theme={theme}
               />
             </div>
             <div className={`toggle-switch ${isAutostart ? "active" : ""}`}>
@@ -254,6 +285,7 @@ export function SettingsScreen({
                 text={TOOLTIPS.AUTOCONNECT}
                 openId={openTooltipId}
                 setOpenId={setOpenTooltipId}
+                theme={theme}
               />
             </div>
             <div className={`toggle-switch ${isAutoConnect ? "active" : ""}`}>
@@ -269,6 +301,7 @@ export function SettingsScreen({
                 text={TOOLTIPS.MINIMIZE_TRAY}
                 openId={openTooltipId}
                 setOpenId={setOpenTooltipId}
+                theme={theme}
               />
             </div>
             <div className={`toggle-switch ${isMinimizeToTray ? "active" : ""}`}>
@@ -284,6 +317,7 @@ export function SettingsScreen({
                 text={TOOLTIPS.GAME_FILTER}
                 openId={openTooltipId}
                 setOpenId={setOpenTooltipId}
+                theme={theme}
               />
             </div>
             <div className={`toggle-switch ${isGameFilter ? "active" : ""}`}>
@@ -303,6 +337,7 @@ export function SettingsScreen({
               text={TOOLTIPS.DISCOVERY_EXCLUSIONS}
               openId={openTooltipId}
               setOpenId={setOpenTooltipId}
+              theme={theme}
             />
           </div>
           <svg className="collapse-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">

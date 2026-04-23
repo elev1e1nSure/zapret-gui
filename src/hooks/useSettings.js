@@ -1,75 +1,68 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { TIMEOUTS } from "../config";
+import { STORAGE_KEYS, STRATEGIES } from "../config";
+import { usePersistedState } from "./usePersistedState";
+
+const boolSerialize = (v) => String(Boolean(v));
+const boolDeserialize = (raw) => raw === "true";
+
+const jsonSerialize = (v) => JSON.stringify(v);
+const jsonDeserialize = (raw) => {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+};
+
+const strategyDeserialize = (raw) =>
+  STRATEGIES.some(s => s.value === raw) ? raw : "auto";
 
 export function useSettings() {
-  const [selectedStrategy, setSelectedStrategy] = useState(() => {
-    return localStorage.getItem("zapret_strategy") || "auto";
-  });
-  
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem("zapret_theme") || "dark";
-  });
-  
-  const [isAutoConnect, setIsAutoConnect] = useState(() => {
-    return localStorage.getItem("zapret_autoconnect") === "true";
-  });
-  
-  const [isMinimizeToTray, setIsMinimizeToTray] = useState(() => {
-    const saved = localStorage.getItem("zapret_minimize_to_tray");
-    return saved === null ? true : saved === "true";
-  });
-
-  const [excludedStrategies, setExcludedStrategies] = useState(() => {
-    try {
-      const saved = localStorage.getItem("zapret_excluded_strategies");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [selectedStrategy, setSelectedStrategy] = usePersistedState(
+    STORAGE_KEYS.STRATEGY,
+    "auto",
+    { deserialize: strategyDeserialize },
+  );
+  const [theme, setTheme] = usePersistedState(STORAGE_KEYS.THEME, "dark");
+  const [isAutoConnect, setIsAutoConnect] = usePersistedState(
+    STORAGE_KEYS.AUTOCONNECT,
+    false,
+    { serialize: boolSerialize, deserialize: boolDeserialize },
+  );
+  const [isMinimizeToTray, setIsMinimizeToTray] = usePersistedState(
+    STORAGE_KEYS.MINIMIZE_TO_TRAY,
+    true,
+    { serialize: boolSerialize, deserialize: boolDeserialize },
+  );
+  const [excludedStrategies, setExcludedStrategies] = usePersistedState(
+    STORAGE_KEYS.EXCLUDED,
+    [],
+    { serialize: jsonSerialize, deserialize: jsonDeserialize },
+  );
+  const [isGameFilter, setIsGameFilter] = usePersistedState(
+    STORAGE_KEYS.GAME_FILTER,
+    false,
+    { serialize: boolSerialize, deserialize: boolDeserialize },
+  );
 
   const [isAutostart, setIsAutostart] = useState(false);
-  const [isGameFilter, setIsGameFilter] = useState(() => {
-    return localStorage.getItem("zapret_game_filter") === "true";
-  });
 
-  // Persistence effects
+  // Sync tray visibility on every change
   useEffect(() => {
-    localStorage.setItem("zapret_excluded_strategies", JSON.stringify(excludedStrategies));
-  }, [excludedStrategies]);
-
-  useEffect(() => {
-    localStorage.setItem("zapret_strategy", selectedStrategy);
-  }, [selectedStrategy]);
-
-  useEffect(() => {
-    localStorage.setItem("zapret_theme", theme);
-  }, [theme]);
-
-  useEffect(() => {
-    localStorage.setItem("zapret_autoconnect", isAutoConnect.toString());
-  }, [isAutoConnect]);
-
-  useEffect(() => {
-    localStorage.setItem("zapret_minimize_to_tray", isMinimizeToTray.toString());
     invoke("set_tray_visible", { visible: isMinimizeToTray }).catch(err => {
       console.error("[Settings] Failed to sync tray visibility:", err);
     });
   }, [isMinimizeToTray]);
 
-  useEffect(() => {
-    localStorage.setItem("zapret_game_filter", isGameFilter.toString());
-  }, [isGameFilter]);
-
-  // Initial loads
+  // Initial autostart probe
   useEffect(() => {
     invoke("is_autostart_enabled")
       .then(setIsAutostart)
       .catch(err => console.error("[Settings] Failed to check autostart:", err));
   }, []);
 
-  const toggleAutostart = async () => {
+  const toggleAutostart = useCallback(async () => {
     try {
       const newState = !isAutostart;
       await invoke("set_autostart", { enable: newState });
@@ -77,21 +70,31 @@ export function useSettings() {
     } catch (error) {
       console.error("[Settings] Failed to toggle autostart:", error);
     }
-  };
+  }, [isAutostart]);
 
-  const toggleAutoConnect = () => setIsAutoConnect(prev => !prev);
-  const toggleMinimizeToTray = () => setIsMinimizeToTray(prev => !prev);
-  const toggleGameFilter = () => setIsGameFilter(prev => !prev);
+  const toggleAutoConnect = useCallback(
+    () => setIsAutoConnect(prev => !prev),
+    [setIsAutoConnect],
+  );
+  const toggleMinimizeToTray = useCallback(
+    () => setIsMinimizeToTray(prev => !prev),
+    [setIsMinimizeToTray],
+  );
+  const toggleGameFilter = useCallback(
+    () => setIsGameFilter(prev => !prev),
+    [setIsGameFilter],
+  );
 
-  const toggleExcludedStrategy = (value) => {
-    setExcludedStrategies(prev => 
-      prev.includes(value) 
-        ? prev.filter(v => v !== value) 
-        : [...prev, value]
+  const toggleExcludedStrategy = useCallback((value) => {
+    setExcludedStrategies(prev =>
+      prev.includes(value)
+        ? prev.filter(v => v !== value)
+        : [...prev, value],
     );
-  };
+  }, [setExcludedStrategies]);
 
-  return {
+  // Stable identity — avoids cascading recomputations in consuming hooks.
+  return useMemo(() => ({
     selectedStrategy,
     setSelectedStrategy,
     excludedStrategies,
@@ -105,6 +108,14 @@ export function useSettings() {
     isAutostart,
     toggleAutostart,
     isGameFilter,
-    toggleGameFilter
-  };
+    toggleGameFilter,
+  }), [
+    selectedStrategy, setSelectedStrategy,
+    excludedStrategies, toggleExcludedStrategy,
+    theme, setTheme,
+    isAutoConnect, toggleAutoConnect,
+    isMinimizeToTray, toggleMinimizeToTray,
+    isAutostart, toggleAutostart,
+    isGameFilter, toggleGameFilter,
+  ]);
 }

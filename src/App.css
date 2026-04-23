@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap');
-
 /* --- 1. Variables & Themes --- */
 :root {
     font-family: 'Montserrat', sans-serif;
@@ -23,19 +21,19 @@
 }
 
 .theme-light {
-    --bg-color: #ffffff;
-    --accent-color: #ff0000;
-    --accent-color-alpha: rgba(255, 0, 0, 0.15);
-    --accent-hover: #df0000;
-    --button-bg: #e3e5e8;
-    --button-hover: #dbdee1;
-    --text-primary: #2e3338;
-    --text-secondary: #5c6066;
-    --strategy-bg: #f2f3f5;
-    --strategy-hover: #e3e5e8;
-    --dropdown-bg: rgba(242, 243, 245, 0.95);
-    --titlebar-color: #4e5058;
-    --border-color: #ffffff;
+    --bg-color: #eef1f4;
+    --accent-color: #e02020;
+    --accent-color-alpha: rgba(224, 32, 32, 0.14);
+    --accent-hover: #c51c1c;
+    --button-bg: #d4d8de;
+    --button-hover: #c8cdd5;
+    --text-primary: #313843;
+    --text-secondary: #616975;
+    --strategy-bg: #d9dde3;
+    --strategy-hover: #ced3db;
+    --dropdown-bg: rgba(224, 229, 236, 0.98);
+    --titlebar-color: #626b76;
+    --border-color: #eef1f4;
 }
 
 /* --- 2. Base Styles --- */
@@ -164,6 +162,7 @@ html, body, #root {
     );
 }
 
+
 .settings-screen::-webkit-scrollbar {
     display: none;
 }
@@ -263,10 +262,23 @@ html, body, #root {
     font-weight: 300;
     pointer-events: none;
     opacity: 0.8;
+    animation: statusTextFade 0.24s ease-out;
+    will-change: opacity, filter;
 }
 
 .app-window.active .status-text {
     color: var(--text-primary);
+}
+
+@keyframes statusTextFade {
+    from {
+        opacity: 0;
+        filter: blur(1.2px);
+    }
+    to {
+        opacity: 0.8;
+        filter: blur(0);
+    }
 }
 
 /* --- 5. Component: Power Button & Settings Gear --- */
@@ -317,6 +329,16 @@ html, body, #root {
     animation: iconFadeIn 0.3s ease forwards;
     backface-visibility: hidden;
     will-change: opacity, transform;
+    filter: drop-shadow(0 0 0 rgba(88, 101, 242, 0));
+}
+
+/* Neon-like bloom around icon contour on hover (no color change). */
+.power-button:hover:not(.loading) .power-icon {
+    animation: iconFadeIn 0.3s ease forwards, powerGlowBloom 1.8s ease-in-out infinite;
+}
+
+.app-window.active .power-button:hover .power-icon {
+    animation: iconFadeIn 0.3s ease forwards, powerGlowBloomActive 1.8s ease-in-out infinite;
 }
 
 .app-window.active .power-button {
@@ -460,8 +482,8 @@ html, body, #root {
 }
 
 .theme-light .strategy-dropdown {
-    background-color: rgba(242, 243, 245, 0.88);
-    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.12);
+    background-color: rgba(224, 229, 236, 0.94);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.14);
 }
 
 .strategy-dropdown.open {
@@ -483,6 +505,10 @@ html, body, #root {
 .strategy-option:hover {
     background-color: rgba(255, 255, 255, 0.075);
     color: var(--text-primary);
+}
+
+.theme-light .strategy-option:hover {
+    background-color: rgba(0, 0, 0, 0.11);
 }
 
 .strategy-option.active {
@@ -572,25 +598,27 @@ html, body, #root {
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                filter 0.45s cubic-bezier(0.4, 0, 0.2, 1);
     box-sizing: border-box;
     border: 1px solid transparent;
 }
 
 .tooltip-focus {
     position: relative;
-    z-index: 1003; /* above tooltip backdrop (1000) and bubble (1001) */
 }
 
 .settings-item-wide:hover {
     background: var(--strategy-hover);
 }
 
-.clear-cache-item {
-    margin-top: 14px;
+.theme-light .settings-item-wide:hover {
+    background: #e3e7ec;
 }
 
 .clear-cache-item {
+    margin-top: 14px;
     box-shadow: none;
     transition: background-color 0.36s cubic-bezier(0.4, 0, 0.2, 1),
                 box-shadow 0.36s cubic-bezier(0.4, 0, 0.2, 1);
@@ -632,6 +660,10 @@ html, body, #root {
     user-select: none;
 }
 
+.theme-light .settings-version {
+    opacity: 0.55;
+}
+
 .settings-item-label {
     display: block;
     color: var(--text-secondary);
@@ -665,34 +697,23 @@ html, body, #root {
     z-index: 100;
 }
 
+/* Backdrop: click-to-close only, no visual effect — dimming is handled via CSS on siblings */
 .tooltip-backdrop {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.05);
+    background: transparent;
     z-index: 1000;
     cursor: default;
     pointer-events: auto;
 }
 
-.tooltip-backdrop.fade-in {
-    animation: backdropFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.tooltip-backdrop.fade-out {
-    animation: backdropFadeOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes backdropFadeIn {
-    from { opacity: 0; backdrop-filter: blur(0px); }
-    to { opacity: 1; backdrop-filter: blur(2px); }
-}
-
-@keyframes backdropFadeOut {
-    from { opacity: 1; backdrop-filter: blur(2px); }
-    to { opacity: 0; backdrop-filter: blur(0px); }
+/* Blur non-focused rows when a tooltip is open */
+.settings-screen.tooltip-open .settings-item-wide:not(.tooltip-focus),
+.settings-screen.tooltip-open .settings-group-header:not(.tooltip-focus) {
+    filter: blur(1.8px);
 }
 
 .info-icon {
@@ -718,12 +739,14 @@ html, body, #root {
 }
 
 .tooltip-bubble {
+    --tooltip-bg: var(--dropdown-bg);
+    --tooltip-border: var(--button-bg);
     position: fixed;
     transform: translate(-50%, -100%);
     width: 220px;
-    background: var(--dropdown-bg);
+    background: var(--tooltip-bg);
     backdrop-filter: blur(12px);
-    border: 1px solid var(--button-bg);
+    border: 1px solid var(--tooltip-border);
     border-radius: 12px;
     padding: 12px 16px;
     color: var(--text-primary);
@@ -735,6 +758,13 @@ html, body, #root {
     pointer-events: none;
     text-align: left;
     z-index: 1001;
+}
+
+.tooltip-bubble.theme-light {
+    --tooltip-bg: rgb(236, 238, 241);
+    --tooltip-border: rgba(62, 70, 82, 0.12);
+    backdrop-filter: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.11);
 }
 
 .tooltip-bubble.fade-in {
@@ -761,9 +791,9 @@ html, body, #root {
     left: 50%;
     width: 10px;
     height: 10px;
-    background: var(--dropdown-bg);
-    border-right: 1px solid var(--button-bg);
-    border-bottom: 1px solid var(--button-bg);
+    background: var(--tooltip-bg);
+    border-right: 1px solid var(--tooltip-border);
+    border-bottom: 1px solid var(--tooltip-border);
     z-index: -1;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -777,10 +807,13 @@ html, body, #root {
     border-bottom: 1px solid var(--button-bg);
 }
 
+/* --- Collapsible: smooth "unfold" with staggered reveal --- */
 .settings-group-header.collapsible {
     cursor: pointer;
     user-select: none;
-    transition: opacity 0.2s ease, margin-bottom 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.2s ease,
+                margin-bottom 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+                filter 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .settings-group-header.collapsible:hover {
@@ -792,35 +825,37 @@ html, body, #root {
 }
 
 .settings-group-header.collapsible.expanded {
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 
 .collapse-chevron {
     color: var(--text-secondary);
     opacity: 0.3;
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+                opacity 0.3s ease;
 }
 
 .settings-group-header.expanded .collapse-chevron {
     transform: rotate(180deg);
-    opacity: 0.6;
+    opacity: 0.65;
 }
 
 .collapsible-wrapper {
     height: 0;
     overflow: hidden;
-    transition: height 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: height 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: height;
 }
 
+/* Guards content against a flash while wrapper height is still animating */
 .collapsible-content {
     opacity: 0;
-    transform: translateY(-6px);
-    transition: opacity 0.22s ease, transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.18s ease;
 }
 
 .collapsible-wrapper.expanded .collapsible-content {
     opacity: 1;
-    transform: translateY(0);
+    transition: opacity 0.3s ease 0.05s;
 }
 
 .settings-group-title {
@@ -838,6 +873,17 @@ html, body, #root {
     display: flex;
     justify-content: flex-start;
     margin: 0 0 16px 0;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.22s ease,
+                transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.collapsible-wrapper.expanded .settings-group-actions-row {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.34s cubic-bezier(0.32, 0.72, 0, 1) 0.04s,
+                transform 0.4s cubic-bezier(0.32, 0.72, 0, 1) 0.04s;
 }
 
 .settings-group-actions {
@@ -891,11 +937,41 @@ html, body, #root {
     font-weight: 700;
     text-align: center;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    opacity: 0;
+    transform: translateY(5px) scale(0.985);
+    transition:
+        background 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+        color      0.2s cubic-bezier(0.4, 0, 0.2, 1),
+        filter     0.2s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity    0.22s ease,
+        transform  0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.collapsible-wrapper.expanded .strategy-badge {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition:
+        background 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+        color      0.2s cubic-bezier(0.4, 0, 0.2, 1),
+        filter     0.2s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity    0.36s cubic-bezier(0.32, 0.72, 0, 1),
+        transform  0.44s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Row-by-row stagger (2-column grid → pairs share the same delay) */
+.collapsible-wrapper.expanded .strategy-badge:nth-child(-n+2)                  { transition-delay: 0s, 0s, 0s, 0.06s, 0.06s; }
+.collapsible-wrapper.expanded .strategy-badge:nth-child(n+3):nth-child(-n+4)   { transition-delay: 0s, 0s, 0s, 0.10s, 0.10s; }
+.collapsible-wrapper.expanded .strategy-badge:nth-child(n+5):nth-child(-n+6)   { transition-delay: 0s, 0s, 0s, 0.14s, 0.14s; }
+.collapsible-wrapper.expanded .strategy-badge:nth-child(n+7):nth-child(-n+8)   { transition-delay: 0s, 0s, 0s, 0.18s, 0.18s; }
+.collapsible-wrapper.expanded .strategy-badge:nth-child(n+9):nth-child(-n+10)  { transition-delay: 0s, 0s, 0s, 0.22s, 0.22s; }
+.collapsible-wrapper.expanded .strategy-badge:nth-child(n+11):nth-child(-n+12) { transition-delay: 0s, 0s, 0s, 0.26s, 0.26s; }
+.collapsible-wrapper.expanded .strategy-badge:nth-child(n+13):nth-child(-n+14) { transition-delay: 0s, 0s, 0s, 0.30s, 0.30s; }
+.collapsible-wrapper.expanded .strategy-badge:nth-child(n+15):nth-child(-n+16) { transition-delay: 0s, 0s, 0s, 0.34s, 0.34s; }
+.collapsible-wrapper.expanded .strategy-badge:nth-child(n+17):nth-child(-n+18) { transition-delay: 0s, 0s, 0s, 0.37s, 0.37s; }
+.collapsible-wrapper.expanded .strategy-badge:nth-child(n+19)                  { transition-delay: 0s, 0s, 0s, 0.40s, 0.40s; }
 
 .strategy-badge.active {
     background: var(--accent-color-alpha);
@@ -937,6 +1013,14 @@ html, body, #root {
     -webkit-app-region: no-drag;
 }
 
+.theme-light .toggle-switch {
+    background: #c7ccd3;
+}
+
+.theme-light .toggle-switch:hover {
+    background: #bcc2ca;
+}
+
 .toggle-switch.active {
     background: var(--accent-color);
     box-shadow: 0 0 10px var(--accent-color-alpha);
@@ -953,11 +1037,119 @@ html, body, #root {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.theme-light .toggle-handle {
+    background: #f8f9fa;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
 .toggle-switch.active .toggle-handle {
     transform: translateX(20px);
 }
 
 /* --- 8. Animations & Effects --- */
+
+/* Feedback pill ("Плохо работает?") */
+.feedback-anchor {
+    position: absolute;
+    bottom: 24px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+    z-index: 45;
+}
+
+.feedback-btn {
+    pointer-events: auto;
+    background: transparent;
+    border: none;
+    outline: none;
+    border-radius: 20px;
+    padding: 5px 16px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    opacity: 0.55;
+    animation: feedbackFadeIn 0.6s ease forwards;
+    transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.feedback-btn:hover {
+    opacity: 0.85;
+    background: var(--button-bg);
+}
+
+.feedback-btn:active {
+    opacity: 0.4;
+}
+
+.feedback-btn.closing {
+    pointer-events: none;
+    animation: feedbackButtonOut 0.2s ease forwards;
+}
+
+.feedback-toast {
+    pointer-events: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 78%;
+    text-align: center;
+    line-height: 1.25;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 500;
+    white-space: normal;
+    opacity: 0;
+    transform: translateY(4px);
+    animation: feedbackFadeIn 0.34s ease-out 0s forwards,
+               feedbackFadeOut 0.36s ease-in 2.32s forwards;
+}
+
+@keyframes feedbackFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 0.72;
+        transform: translateY(0);
+    }
+}
+
+@keyframes feedbackFadeOut {
+    from {
+        opacity: 0.72;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(2px);
+    }
+}
+
+@keyframes feedbackButtonOut {
+    from {
+        opacity: 0.55;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(3px);
+    }
+}
+
+
 @keyframes iconFadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -966,6 +1158,30 @@ html, body, #root {
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+}
+
+@keyframes powerGlowBloom {
+    0% {
+        filter: drop-shadow(0 0 3px rgba(88, 101, 242, 0.18));
+    }
+    50% {
+        filter: drop-shadow(0 0 8px rgba(88, 101, 242, 0.3));
+    }
+    100% {
+        filter: drop-shadow(0 0 5px rgba(88, 101, 242, 0.22));
+    }
+}
+
+@keyframes powerGlowBloomActive {
+    0% {
+        filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.18));
+    }
+    50% {
+        filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.32));
+    }
+    100% {
+        filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.24));
+    }
 }
 
 @keyframes fadeInOpacity {

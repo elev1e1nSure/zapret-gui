@@ -12,17 +12,19 @@ use crate::app_error::{AppError, AppResult};
 use crate::constants::{CREATE_NO_WINDOW, ENGINE_DIR, REQUIRED_FILES};
 use crate::sys_utils;
 
-fn is_simple_file_name(file_name: &str) -> bool {
+pub(crate) fn is_simple_file_name(file_name: &str) -> bool {
     let mut components = Path::new(file_name).components();
     matches!(components.next(), Some(Component::Normal(_))) && components.next().is_none()
 }
 
 pub fn build_connection_client() -> Client {
+    // Options are static and do not involve any platform-dependent lookups,
+    // so the builder is expected to always succeed.
     Client::builder()
         .timeout(Duration::from_secs(3))
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
         .build()
-        .unwrap_or_else(|_| Client::new())
+        .expect("reqwest client must build with static options")
 }
 
 pub async fn check_connection_with_client(client: &Client) -> bool {
@@ -82,11 +84,6 @@ pub fn extract_engine(handle: &AppHandle) -> AppResult<PathBuf> {
     }
 
     Ok(engine_dir)
-}
-
-pub fn resolve_strategy_path(handle: &AppHandle, name: &str) -> AppResult<PathBuf> {
-    let engine_dir = extract_engine(handle)?;
-    resolve_strategy_path_in_dir(&engine_dir, name)
 }
 
 pub fn resolve_strategy_path_in_dir(engine_dir: &Path, name: &str) -> AppResult<PathBuf> {
@@ -151,4 +148,93 @@ pub fn execute_strategy(_handle: &AppHandle, path: &Path, is_game_filter: bool) 
 
 pub fn stop_zapret() {
     sys_utils::kill_winws();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    // ── is_simple_file_name ───────────────────────────────────────────────
+
+    #[test]
+    fn simple_file_names_accepted() {
+        assert!(is_simple_file_name("strategy.bat"));
+        assert!(is_simple_file_name("general_silent.bat"));
+        assert!(is_simple_file_name("general (ALT2)_silent.bat"));
+    }
+
+    #[test]
+    fn path_traversal_attempts_rejected() {
+        assert!(!is_simple_file_name("../evil.bat"));
+        assert!(!is_simple_file_name("sub/evil.bat"));
+        assert!(!is_simple_file_name("sub\\evil.bat"));
+    }
+
+    #[test]
+    fn empty_string_rejected() {
+        assert!(!is_simple_file_name(""));
+    }
+
+    // ── resolve_strategy_path_in_dir ──────────────────────────────────────
+
+    fn tmp_dir(suffix: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("zapret_test_{suffix}_{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn resolve_finds_exact_match() {
+        let dir = tmp_dir("exact");
+        fs::write(dir.join("strategy.bat"), b"@echo off").unwrap();
+
+        let result = resolve_strategy_path_in_dir(&dir, "strategy.bat");
+        assert!(result.is_ok(), "expected Ok, got {result:?}");
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn resolve_appends_bat_extension_automatically() {
+        let dir = tmp_dir("ext");
+        fs::write(dir.join("strategy.bat"), b"@echo off").unwrap();
+
+        let result = resolve_strategy_path_in_dir(&dir, "strategy");
+        assert!(result.is_ok(), "should succeed without .bat suffix");
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn resolve_is_case_insensitive() {
+        let dir = tmp_dir("case");
+        fs::write(dir.join("General_Silent.bat"), b"@echo off").unwrap();
+
+        let result = resolve_strategy_path_in_dir(&dir, "general_silent.bat");
+        assert!(result.is_ok(), "case-insensitive lookup failed");
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn resolve_returns_path_error_for_missing_file() {
+        let dir = tmp_dir("missing");
+
+        let result = resolve_strategy_path_in_dir(&dir, "nonexistent.bat");
+        assert!(
+            matches!(result, Err(AppError::Path(_))),
+            "expected Path error, got {result:?}"
+        );
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn resolve_rejects_path_traversal_in_name() {
+        let dir = tmp_dir("traversal");
+
+        let result = resolve_strategy_path_in_dir(&dir, "../evil.bat");
+        assert!(
+            matches!(result, Err(AppError::Path(_))),
+            "traversal should produce Path error, got {result:?}"
+        );
+        fs::remove_dir_all(&dir).unwrap();
+    }
 }

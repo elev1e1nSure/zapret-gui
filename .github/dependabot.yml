@@ -1,0 +1,65 @@
+version: 2
+
+# ──────────────────────────────────────────────────────────────────────────
+# Dependency update SLA
+# ──────────────────────────────────────────────────────────────────────────
+# security (high/critical CVE) → merge within 48 h of PR opening
+# minor / patch               → review within 1 week; merge before next release
+# major                       → manual decision; create tracking issue
+#
+# All PRs from Dependabot must pass CI (ci.yml) before merging.
+# ──────────────────────────────────────────────────────────────────────────
+
+updates:
+  # ── JavaScript / pnpm ────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Europe/Moscow
+    # Cap open PRs to avoid noise; security PRs are never capped
+    open-pull-requests-limit: 5
+    # Group routine dev-tool bumps into a single PR per week
+    groups:
+      dev-tooling:
+        patterns:
+          - "@eslint/*"
+          - "eslint*"
+          - "vite*"
+          - "@vitejs/*"
+          - "vitest*"
+          - "@testing-library/*"
+          - "globals"
+          - "jsdom"
+          - "terser"
+    labels:
+      - dependencies
+      - javascript
+    commit-message:
+      prefix: "chore(deps)"
+
+  # ── Rust / Cargo ─────────────────────────────────────────────────────────
+  - package-ecosystem: cargo
+    directory: /src-tauri
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Europe/Moscow
+    open-pull-requests-limit: 5
+    # Group Tauri ecosystem bumps together (tauri, tauri-plugin-*, tauri-build)
+    groups:
+      tauri-ecosystem:
+        patterns:
+          - "tauri*"
+      async-runtime:
+        patterns:
+          - "tokio*"
+          - "futures*"
+    labels:
+      - dependencies
+      - rust
+    commit-message:
+      prefix: "chore(deps)"

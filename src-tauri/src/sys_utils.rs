@@ -15,6 +15,9 @@ pub fn kill_winws() {
 
 pub fn add_to_defender_exclusions(path: &Path) {
     let path_str = path.to_string_lossy();
+    if path_str.is_empty() {
+        return;
+    }
     let escaped = path_str.replace('\'', "''");
 
     let script = format!(

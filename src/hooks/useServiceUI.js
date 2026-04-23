@@ -1,23 +1,12 @@
-import { useState, useEffect } from "react";
-import { TIMEOUTS, APP_STATUS } from "../config";
+import { APP_STATUS } from "../config";
 
-export function useServiceUI(isLoading, status) {
-  const [showLoadingUI, setShowLoadingUI] = useState(false);
+// `showLoadingUI` is purely derived from props — no useState/useEffect needed.
+export function useServiceUI(isLoading, status, forceDiscoveryUI = false) {
   const discoveryPrefix = APP_STATUS.DISCOVERY();
-
-  // Spinner logic: only for auto-discovery
-  useEffect(() => {
-    const isAuto = status.startsWith(discoveryPrefix);
-    
-    if (isLoading && isAuto) {
-      setShowLoadingUI(true);
-    } else {
-      setShowLoadingUI(false);
-    }
-  }, [isLoading, status, discoveryPrefix]);
+  const isAuto = status.startsWith(discoveryPrefix);
 
   return {
-    showLoadingUI,
-    isDiscovery: status.startsWith(discoveryPrefix)
+    showLoadingUI: isLoading && (isAuto || forceDiscoveryUI),
+    isDiscovery: isAuto,
   };
 }

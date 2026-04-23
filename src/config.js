@@ -50,6 +50,19 @@ export const APP_STATUS = {
   DISCOVERY_ABORTED: () => "Поиск отменен",
 };
 
+// Must match AppError::DiscoveryAborted::error_type() on the Rust side.
+export const DISCOVERY_ABORTED_TYPE = "DiscoveryAborted";
+
+export const STORAGE_KEYS = {
+  STRATEGY: "zapret_strategy",
+  THEME: "zapret_theme",
+  AUTOCONNECT: "zapret_autoconnect",
+  MINIMIZE_TO_TRAY: "zapret_minimize_to_tray",
+  EXCLUDED: "zapret_excluded_strategies",
+  GAME_FILTER: "zapret_game_filter",
+  LAST_WORKING_STRATEGY: "zapret_last_working_strategy",
+};
+
 export const TOOLTIPS = {
   AUTOSTART: "Приложение будет запускаться само при включении ПК. Не нужно открывать его вручную каждый раз.",
   AUTOCONNECT: "После запуска приложение сразу включает выбранный режим, чтобы всё работало без лишних действий.",

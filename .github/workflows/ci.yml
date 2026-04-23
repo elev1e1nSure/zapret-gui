@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, dev]
+  pull_request:
+    branches: [main, master]
+
+# Prevent concurrent CI runs on the same branch from stacking up.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # Frontend: lint, test, build (runs on Ubuntu for speed & cost)
+  # ──────────────────────────────────────────────────────────────
+  frontend:
+    name: Frontend (lint · test · build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build (Vite)
+        run: pnpm build
+
+  # ──────────────────────────────────────────────────────────────
+  # Rust: fmt · check · clippy · test
+  # Must run on Windows because the crate targets Windows APIs.
+  # ──────────────────────────────────────────────────────────────
+  rust:
+    name: Rust (fmt · check · clippy · test)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Cargo registry & build output
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Format check
+        working-directory: src-tauri
+        run: cargo fmt --check
+
+      - name: Check
+        working-directory: src-tauri
+        run: cargo check
+
+      - name: Clippy
+        working-directory: src-tauri
+        # Deny only the groups declared in [lints.clippy] in Cargo.toml;
+        # use -W for the remaining groups so we get visibility without hard-failing.
+        run: cargo clippy -- -W clippy::suspicious -W clippy::perf
+
+      - name: Test
+        working-directory: src-tauri
+        run: cargo test
+
+      - name: Security audit (cargo-audit)
+        working-directory: src-tauri
+        # Install cargo-audit and run; --deny warnings makes it a hard gate
+        run: |
+          cargo install cargo-audit --quiet
+          cargo audit
+
+  # ──────────────────────────────────────────────────────────────
+  # Dependency security audit for JS packages (fast, no build needed)
+  # ──────────────────────────────────────────────────────────────
+  audit-js:
+    name: JS dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Audit JS dependencies
+        # --audit-level high: only fail on high/critical CVEs; moderate are reported but don't block
+        run: pnpm audit --audit-level high

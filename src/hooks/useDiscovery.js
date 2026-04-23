@@ -1,45 +1,25 @@
-import { useEffect, useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { STRATEGIES, APP_STATUS } from "../config";
+import {
+  clearStrategyCache,
+  prioritizeCached,
+  setLastWorkingStrategy,
+} from "../utils/strategyCache";
+import { humanizeError } from "../utils/errors";
 
-const CACHE_KEY = "zapret_last_working_strategy";
+export { clearStrategyCache, humanizeError };
 
-function getLastWorkingStrategy() {
-  return localStorage.getItem(CACHE_KEY);
+function labelOf(value, fallback = "Custom") {
+  return STRATEGIES.find(s => s.value === value)?.label || fallback;
 }
 
-function setLastWorkingStrategy(strategy) {
-  if (strategy) localStorage.setItem(CACHE_KEY, strategy);
+function availableValues(excluded, extraSkip = null) {
+  return STRATEGIES
+    .filter(s => s.value !== "auto" && !excluded.includes(s.value) && s.value !== extraSkip)
+    .map(s => s.value);
 }
-
-export function clearStrategyCache() {
-  try {
-    localStorage.removeItem(CACHE_KEY);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function prioritizeCached(strategies) {
-  const cached = getLastWorkingStrategy();
-  if (!cached || !strategies.includes(cached)) return strategies;
-  return [cached, ...strategies.filter(s => s !== cached)];
-}
-
-function humanizeError(error) {
-  const str = String(error);
-  if (str.includes("Process error") || str.includes("Failed to start")) {
-    return "Не удалось запустить стратегию. Попробуйте другую или перезапустите приложение.";
-  }
-  if (str.includes("Path error") || str.includes("not found")) {
-    return "Файлы стратегии не найдены. Попробуйте перезапустить приложение.";
-  }
-  return str;
-}
-
-export { humanizeError };
 
 /**
  * Handles auto-discovery lifecycle: start, abort, event listener, cache.
@@ -56,10 +36,9 @@ export function useDiscovery({ settings, setStatus, setIsActive, setProcessState
   useEffect(() => {
     const unlisten = listen("discovery-strategy", (event) => {
       const { strategy, index, total } = event.payload;
-      const label = STRATEGIES.find(s => s.value === strategy)?.label || strategy;
-      setStatus(APP_STATUS.DISCOVERY(label, index, total));
+      setStatus(APP_STATUS.DISCOVERY(labelOf(strategy, strategy), index, total));
     });
-    return () => { unlisten.then(f => f()); };
+    return () => { unlisten.then(f => f()).catch(console.warn); };
   }, [setStatus]);
 
   const abortDiscovery = useCallback(async () => {
@@ -71,35 +50,52 @@ export function useDiscovery({ settings, setStatus, setIsActive, setProcessState
     } catch (err) {
       console.warn("[Discovery] Abort failed:", err);
     }
-  }, [setStatus, setProcessState, abortControllerRef]);
+  }, [setStatus, setProcessState]); // eslint-disable-line react-hooks/exhaustive-deps -- abortControllerRef is a ref (stable); adding it is incorrect
 
-  const startDiscovery = useCallback(async () => {
-    const available = STRATEGIES
-      .filter(s => s.value !== "auto" && !settings.excludedStrategies.includes(s.value))
-      .map(s => s.value);
-    const strategyValues = prioritizeCached(available);
-
+  // Given a pre-ordered list of strategy values, drives the discovery RPC and
+  // commits the result on success. Shared body for both discovery flavors.
+  const runOrderedDiscovery = useCallback(async (strategyValues) => {
     if (strategyValues.length === 0) {
-      throw "Все стратегии исключены. Включите хотя бы одну в настройках.";
+      throw new Error("Все стратегии исключены. Включите хотя бы одну в настройках.");
     }
 
-    const first = strategyValues[0];
-    const firstLabel = STRATEGIES.find(s => s.value === first)?.label || first;
-    setStatus(APP_STATUS.DISCOVERY(firstLabel, 1, strategyValues.length));
+    setStatus(APP_STATUS.DISCOVERY(labelOf(strategyValues[0], strategyValues[0]), 1, strategyValues.length));
 
     const bestStrategy = await invoke("run_auto_discovery", {
       strategies: strategyValues,
-      isGameFilter: settings.isGameFilter
+      isGameFilter: settings.isGameFilter,
     });
 
     if (!abortControllerRef.current) {
       settings.setSelectedStrategy(bestStrategy);
       setLastWorkingStrategy(bestStrategy);
       setIsActive(true);
-      const label = STRATEGIES.find(s => s.value === bestStrategy)?.label || "Custom";
-      setStatus(APP_STATUS.MATCHED(label));
+      setStatus(APP_STATUS.MATCHED(labelOf(bestStrategy)));
     }
-  }, [settings, setStatus, setIsActive, abortControllerRef]);
+  }, [settings, setStatus, setIsActive]); // eslint-disable-line react-hooks/exhaustive-deps -- abortControllerRef is a ref (stable); adding it is incorrect
 
-  return { startDiscovery, abortDiscovery };
+  const startDiscovery = useCallback(async () => {
+    const ordered = prioritizeCached(availableValues(settings.excludedStrategies));
+    await runOrderedDiscovery(ordered);
+  }, [settings.excludedStrategies, runOrderedDiscovery]);
+
+  // Like startDiscovery but skips a specific strategy and begins from the one
+  // after it. Does not use the cache (the skipped strategy was the cached "best").
+  const startDiscoverySkipping = useCallback(async (strategyToSkip) => {
+    const available = availableValues(settings.excludedStrategies, strategyToSkip);
+    const skipIdx = STRATEGIES.findIndex(s => s.value === strategyToSkip);
+
+    const afterSkip = [];
+    const beforeSkip = [];
+    for (const s of STRATEGIES) {
+      if (!available.includes(s.value)) continue;
+      const idx = STRATEGIES.findIndex(st => st.value === s.value);
+      if (idx > skipIdx) afterSkip.push(s.value);
+      else beforeSkip.push(s.value);
+    }
+
+    await runOrderedDiscovery([...afterSkip, ...beforeSkip]);
+  }, [settings.excludedStrategies, runOrderedDiscovery]);
+
+  return { startDiscovery, startDiscoverySkipping, abortDiscovery };
 }

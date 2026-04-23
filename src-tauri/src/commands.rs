@@ -10,14 +10,24 @@ use crate::{autostart, engine, tray};
 
 #[tauri::command]
 pub async fn run_strategy(handle: AppHandle, name: String, is_game_filter: bool) -> AppResult<()> {
-    let strategy_path = engine::resolve_strategy_path(&handle, &name)?;
-    engine::execute_strategy(&handle, &strategy_path, is_game_filter)
+    tracing::info!(strategy = %name, game_filter = is_game_filter, "run_strategy");
+    let engine_dir = engine::extract_engine(&handle)?;
+    let strategy_path = engine::resolve_strategy_path_in_dir(&engine_dir, &name)?;
+    let result = engine::execute_strategy(&handle, &strategy_path, is_game_filter);
+    if let Err(ref e) = result {
+        tracing::error!(strategy = %name, error = %e, "run_strategy failed");
+    }
+    result
 }
 
 #[tauri::command]
 pub async fn abort_auto_discovery(state: State<'_, AppState>) -> AppResult<()> {
+    // Raising the flag is enough: the discovery loop picks it up on the next
+    // poll tick and stops the service itself. This avoids a redundant taskkill
+    // racing with the in-flight strategy spawn.
+    tracing::info!("abort_auto_discovery requested");
     state.cancel_discovery.store(true, Ordering::SeqCst);
-    stop_service().await
+    Ok(())
 }
 
 #[tauri::command]
@@ -27,6 +37,7 @@ pub async fn run_auto_discovery(
     strategies: Vec<String>,
     is_game_filter: bool,
 ) -> AppResult<String> {
+    tracing::info!(count = strategies.len(), game_filter = is_game_filter, "run_auto_discovery started");
     state.cancel_discovery.store(false, Ordering::SeqCst);
     let engine_dir = engine::extract_engine(&handle)?;
     let client = engine::build_connection_client();
@@ -34,10 +45,12 @@ pub async fn run_auto_discovery(
 
     for (idx, strategy) in strategies.into_iter().enumerate() {
         if state.cancel_discovery.load(Ordering::SeqCst) {
+            tracing::info!("auto_discovery aborted by user");
             return Err(AppError::DiscoveryAborted);
         }
 
-        let _ = stop_service().await;
+        tracing::info!(strategy = %strategy, step = idx + 1, total, "trying strategy");
+        engine::stop_zapret();
         let _ = handle.emit("discovery-strategy", json!({
             "strategy": strategy,
             "index": idx + 1,
@@ -46,6 +59,7 @@ pub async fn run_auto_discovery(
         let strategy_path = engine::resolve_strategy_path_in_dir(&engine_dir, &strategy)?;
 
         if engine::execute_strategy(&handle, &strategy_path, is_game_filter).is_err() {
+            tracing::warn!(strategy = %strategy, "strategy failed to spawn, skipping");
             continue;
         }
 
@@ -56,12 +70,11 @@ pub async fn run_auto_discovery(
 
         loop {
             tokio::select! {
-                _ = &mut strategy_timeout => {
-                    break;
-                }
+                _ = &mut strategy_timeout => { break; }
                 _ = poll_interval.tick() => {
                     if state.cancel_discovery.load(Ordering::SeqCst) {
-                        let _ = stop_service().await;
+                        engine::stop_zapret();
+                        tracing::info!("auto_discovery aborted during polling");
                         return Err(AppError::DiscoveryAborted);
                     }
                     if engine::check_connection_with_client(&client).await {
@@ -73,10 +86,12 @@ pub async fn run_auto_discovery(
         }
 
         if matched {
+            tracing::info!(strategy = %strategy, "auto_discovery matched strategy");
             return Ok(strategy);
         }
     }
 
+    tracing::warn!("auto_discovery exhausted all strategies");
     Err(AppError::Network(
         "Ни одна стратегия не сработала. Проверьте подключение к интернету или попробуйте ещё раз.".into(),
     ))
@@ -84,6 +99,7 @@ pub async fn run_auto_discovery(
 
 #[tauri::command]
 pub async fn stop_service() -> AppResult<()> {
+    tracing::info!("stop_service");
     engine::stop_zapret();
     Ok(())
 }
@@ -105,6 +121,7 @@ pub async fn set_tray_visible(handle: AppHandle, visible: bool) -> AppResult<()>
 
 #[tauri::command]
 pub async fn exit_app(handle: AppHandle) {
+    tracing::info!("exit_app requested");
     if let Some(tray) = handle.tray_by_id("main_tray") {
         let _ = tray.set_visible(false);
     }
@@ -119,5 +136,6 @@ pub async fn is_autostart_enabled() -> bool {
 
 #[tauri::command]
 pub async fn set_autostart(enable: bool) -> AppResult<()> {
+    tracing::info!(enable, "set_autostart");
     autostart::set_enabled(enable)
 }

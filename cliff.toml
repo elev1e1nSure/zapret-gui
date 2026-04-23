@@ -1,0 +1,56 @@
+# git-cliff configuration — https://git-cliff.org
+# Generates CHANGELOG.md from conventional commits.
+
+[changelog]
+header = """
+# Changelog
+
+All notable changes to this project will be documented in this file.
+Generated from [Conventional Commits](https://www.conventionalcommits.org/).
+
+"""
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="v") }}] — {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}\
+- {% if commit.scope %}**{{ commit.scope }}**: {% endif %}\
+{{ commit.message | upper_first }}{% if commit.breaking %} ⚠️  **BREAKING**{% endif %}
+
+{% endfor %}
+{% endfor %}\n
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+protect_breaking_commits = false
+
+commit_parsers = [
+  # Map conventional commit types to changelog groups
+  { message = "^feat",              group = "Features" },
+  { message = "^fix",               group = "Bug Fixes" },
+  { message = "^perf",              group = "Performance" },
+  { message = "^refactor",          group = "Refactoring" },
+  { message = "^docs",              group = "Documentation" },
+  { message = "^test",              group = "Testing" },
+  { message = "^chore\\(deps.*\\)", group = "Dependencies" },
+  # Skip generic chores and CI noise
+  { message = "^chore",             skip = true },
+  { message = "^ci",                skip = true },
+  { message = "^style",             skip = true },
+]
+
+filter_commits = false
+tag_pattern = "v[0-9]*"
+skip_tags = "v0\\.0\\.1"
+ignore_tags = ""
+topo_order = false
+sort_commits = "oldest"

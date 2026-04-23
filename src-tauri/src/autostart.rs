@@ -25,7 +25,7 @@ pub fn set_enabled(enable: bool) -> AppResult<()> {
             .stderr(Stdio::null())
             .status();
 
-        Command::new("schtasks")
+        let status = Command::new("schtasks")
             .args([
                 "/create",
                 "/tn",
@@ -43,14 +43,28 @@ pub fn set_enabled(enable: bool) -> AppResult<()> {
             .stderr(Stdio::null())
             .status()
             .map_err(|e| AppError::Process(e.to_string()))?;
+
+        if !status.success() {
+            return Err(AppError::Process(format!(
+                "schtasks /create failed with exit code {:?}",
+                status.code()
+            )));
+        }
     } else {
-        Command::new("schtasks")
+        let status = Command::new("schtasks")
             .args(["/delete", "/tn", "ZapretGUI", "/f"])
             .creation_flags(CREATE_NO_WINDOW)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()
             .map_err(|e| AppError::Process(e.to_string()))?;
+
+        if !status.success() {
+            return Err(AppError::Process(format!(
+                "schtasks /delete failed with exit code {:?}",
+                status.code()
+            )));
+        }
     }
 
     Ok(())

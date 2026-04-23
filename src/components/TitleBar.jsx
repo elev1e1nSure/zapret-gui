@@ -1,7 +1,7 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 
-export function TitleBar({ isActive, showLoadingUI, isMinimizeToTray }) {
+export function TitleBar({ isMinimizeToTray }) {
   const handleMinimize = (e) => {
     e.stopPropagation();
     getCurrentWindow().minimize();

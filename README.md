@@ -1,7 +1,7 @@
 # Zapret-GUI
 
 ![Main Window Unactive](./assets/screen1.png)
-![Main Window Active](./assets/screen2.png)
+![Settings Window](./assets/screen2.png)
 
 Простая оболочка для [zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube). Больше не нужно вручную перебирать батники — приложение само запустит нужную стратегию или найдёт рабочую самостоятельно.
 
@@ -51,3 +51,21 @@
 
 - [zapret](https://github.com/bol-van/zapret) — оригинальный проект, первоисточник
 - [zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube) — сборка под Windows, движок которой использует это приложение
+
+## Разработка
+
+Документы для контрибьюторов: [ARCHITECTURE.md](./ARCHITECTURE.md) · [RUNBOOK.md](./RUNBOOK.md) · [RELEASE.md](./RELEASE.md)
+
+Changelog генерируется автоматически из коммитов в формате [Conventional Commits](https://www.conventionalcommits.org/ru/). Примеры:
+
+```
+feat: добавить поддержку профилей стратегий
+fix: исправить зависание при повторном запуске discovery
+perf: снизить задержку опроса с 500 до 250 мс
+docs: обновить RUNBOOK
+chore(deps): обновить tauri до 2.11
+```
+
+## Лицензия
+
+Этот проект распространяется по лицензии MIT. Полный текст находится в файле `LICENSE`.

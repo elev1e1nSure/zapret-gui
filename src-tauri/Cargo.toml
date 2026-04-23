@@ -1,9 +1,10 @@
 [package]
 name = "zapret-gui"
-version = "1.3.0"
+version = "1.4.0"
 description = "GUI wrapper for zapret-discord-youtube — simple one-click DPI bypass for Windows"
-authors = ["you"]
+authors = ["elev1e1nSure"]
 edition = "2021"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -23,11 +24,24 @@ tauri-plugin-single-instance = "2"
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 include_dir = "0.7"
 thiserror = "1.0"
 futures = "0.3"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
+human-panic = "2"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+# Catch correctness/perf issues; style is left to rustfmt
+correctness = "deny"
+suspicious = "warn"
+perf = "warn"
 
 [profile.release]
 panic = "abort"

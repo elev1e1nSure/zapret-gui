@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { STRATEGIES, APP_STATUS, TIMEOUTS } from "../config";
+import { STRATEGIES, APP_STATUS, TIMEOUTS, DISCOVERY_ABORTED_TYPE } from "../config";
 import { useSettings } from "./useSettings";
 import { useServiceUI } from "./useServiceUI";
 import { useDiscovery, clearStrategyCache, humanizeError } from "./useDiscovery";
@@ -10,22 +10,38 @@ export function useService() {
   const settings = useSettings();
 
   const [isActive, setIsActive] = useState(false);
+  const [isAutoConnected, setIsAutoConnected] = useState(false);
+  const [forceDiscoveryUI, setForceDiscoveryUI] = useState(false);
   const [status, setStatus] = useState(APP_STATUS.READY());
   const [currentScreen, setCurrentScreen] = useState("main");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [processState, setProcessState] = useState({ isLoading: false, isExiting: false });
 
-  const { showLoadingUI, isDiscovery } = useServiceUI(processState.isLoading, status);
+  const { showLoadingUI } = useServiceUI(processState.isLoading, status, forceDiscoveryUI);
   const abortControllerRef = useRef(false);
+  const finalizeTimerRef = useRef(null);
+
+  // Computed only for internal use inside toggleService
   const activeStrategyLabel = STRATEGIES.find(s => s.value === settings.selectedStrategy)?.label || "Custom";
 
-  const finalizeProcess = useCallback(() => {
-    setTimeout(() => {
+  const finalizeProcess = useCallback((immediate = false) => {
+    if (immediate) {
       setProcessState({ isLoading: false, isExiting: false });
+      return;
+    }
+    finalizeTimerRef.current = setTimeout(() => {
+      setProcessState({ isLoading: false, isExiting: false });
+      finalizeTimerRef.current = null;
     }, TIMEOUTS.PROCESS_FINALIZE_DELAY);
   }, []);
 
-  const { startDiscovery, abortDiscovery } = useDiscovery({
+  useEffect(() => {
+    return () => {
+      if (finalizeTimerRef.current) clearTimeout(finalizeTimerRef.current);
+    };
+  }, []);
+
+  const { startDiscovery, startDiscoverySkipping, abortDiscovery } = useDiscovery({
     settings,
     setStatus,
     setIsActive,
@@ -49,11 +65,13 @@ export function useService() {
 
     if (isActive) {
       setIsActive(false);
+      setIsAutoConnected(false);
+      setForceDiscoveryUI(false);
       setProcessState({ isLoading: true, isExiting: true });
       setStatus(APP_STATUS.READY());
       try {
         await invoke("stop_service");
-        finalizeProcess();
+        finalizeProcess(true);
       } catch (error) {
         setStatus(APP_STATUS.ERROR(humanizeError(error)));
         setProcessState({ isLoading: false, isExiting: false });
@@ -67,17 +85,23 @@ export function useService() {
     try {
       if (settings.selectedStrategy === "auto") {
         await startDiscovery();
+        setIsAutoConnected(true);
+        setForceDiscoveryUI(false);
       } else {
+        setForceDiscoveryUI(false);
+        setIsAutoConnected(false);
         setIsActive(true);
         setStatus(APP_STATUS.RUNNING(activeStrategyLabel));
         await invoke("run_strategy", {
           name: settings.selectedStrategy,
-          isGameFilter: settings.isGameFilter
+          isGameFilter: settings.isGameFilter,
         });
       }
     } catch (error) {
-      if (!abortControllerRef.current && error !== APP_STATUS.DISCOVERY_ABORTED()) {
+      if (!abortControllerRef.current && error?.type !== DISCOVERY_ABORTED_TYPE) {
         setIsActive(false);
+        setIsAutoConnected(false);
+        setForceDiscoveryUI(false);
         setStatus(APP_STATUS.ERROR(humanizeError(error)));
       }
     } finally {
@@ -85,14 +109,53 @@ export function useService() {
     }
   }, [isActive, processState.isLoading, settings, activeStrategyLabel, finalizeProcess, startDiscovery, abortDiscovery]);
 
-  // Keep a stable ref so tray listener always calls the latest version
+  // Called from the "Плохо работает?" button — excludes the current strategy and restarts discovery.
+  const reportBadStrategy = useCallback(async (strategyValue) => {
+    setIsAutoConnected(false);
+    setForceDiscoveryUI(true);
+    settings.toggleExcludedStrategy(strategyValue);
+    clearStrategyCache();
+
+    setIsActive(false);
+    setProcessState({ isLoading: true, isExiting: true });
+    setStatus(APP_STATUS.STOPPING());
+    try {
+      await invoke("stop_service");
+    } catch (e) {
+      console.warn("[Service] Stop failed during reportBadStrategy:", e);
+    }
+
+    // Keep the same stop → start rhythm as normal toggle for a smoother visual transition.
+    await new Promise(resolve => setTimeout(resolve, TIMEOUTS.PROCESS_FINALIZE_DELAY));
+
+    abortControllerRef.current = false;
+    setProcessState({ isLoading: true, isExiting: false });
+
+    try {
+      await startDiscoverySkipping(strategyValue);
+      setIsAutoConnected(true);
+      setForceDiscoveryUI(false);
+    } catch (error) {
+      if (!abortControllerRef.current && error?.type !== DISCOVERY_ABORTED_TYPE) {
+        setIsActive(false);
+        setIsAutoConnected(false);
+        setForceDiscoveryUI(false);
+        setStatus(APP_STATUS.ERROR(humanizeError(error)));
+      }
+    } finally {
+      setForceDiscoveryUI(false);
+      setProcessState(prev => ({ ...prev, isLoading: false }));
+    }
+  }, [settings, startDiscoverySkipping]);
+
+  // Keep a stable ref so the tray listener always calls the latest version
   const toggleServiceRef = useRef(toggleService);
   useEffect(() => { toggleServiceRef.current = toggleService; }, [toggleService]);
 
   // Tray toggle event
   useEffect(() => {
     const unlisten = listen("tray-toggle", () => toggleServiceRef.current());
-    return () => { unlisten.then(f => f()); };
+    return () => { unlisten.then(f => f()).catch(console.warn); };
   }, []);
 
   // Autoconnect on startup
@@ -108,17 +171,17 @@ export function useService() {
 
   return {
     isActive,
+    isAutoConnected,
+    reportBadStrategy,
     status,
     isLoading: processState.isLoading,
     showLoadingUI,
     isExiting: processState.isExiting,
-    isDiscovery,
     selectedStrategy: settings.selectedStrategy,
     setSelectedStrategy: settings.setSelectedStrategy,
     isDropdownOpen,
     setIsDropdownOpen,
     toggleService,
-    activeStrategyLabel,
     theme: settings.theme,
     setTheme: settings.setTheme,
     isAutostart: settings.isAutostart,

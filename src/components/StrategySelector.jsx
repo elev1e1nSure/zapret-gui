@@ -34,7 +34,7 @@ export function StrategySelector({
   const currentStrategyLabel = STRATEGIES.find(s => s.value === selectedStrategy)?.label;
 
   return (
-    <div className={`strategy-container ${(isActive || (isLoading && !isExiting)) ? "hidden" : ""}`} ref={dropdownRef}>
+    <div className={`strategy-container ${(isActive || isLoading || isExiting) ? "hidden" : ""}`} ref={dropdownRef}>
       <div 
         className={`strategy-select ${isDropdownOpen ? "open" : ""}`}
         onClick={(e) => {

@@ -21,7 +21,7 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         .cloned()
         .ok_or_else(|| tauri::Error::AssetNotFound("Default window icon not found".to_string()))?;
 
-    let tray = TrayIconBuilder::with_id("main_tray")
+    TrayIconBuilder::with_id("main_tray")
         .icon(tray_icon)
         .menu(&menu)
         .show_menu_on_left_click(false)
@@ -59,8 +59,6 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
             }
         })
         .build(app)?;
-
-    *state.tray.lock().unwrap_or_else(|e| e.into_inner()) = Some(tray);
 
     Ok(())
 }
