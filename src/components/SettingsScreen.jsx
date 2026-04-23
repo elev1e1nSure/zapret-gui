@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { STRATEGIES } from "../config";
 
 export function SettingsScreen({ 
@@ -15,6 +16,7 @@ export function SettingsScreen({
   excludedStrategies,
   onToggleExcluded
 }) {
+  const [isStrategiesExpanded, setIsStrategiesExpanded] = useState(false);
   const allStrategies = STRATEGIES.filter(s => s.value !== "auto");
   
   const handleToggleAll = (enable) => {
@@ -94,26 +96,37 @@ export function SettingsScreen({
           </div>
         </div>
 
-        <div className="settings-group-header">
+        <div 
+          className={`settings-group-header collapsible ${isStrategiesExpanded ? "expanded" : ""}`}
+          onClick={() => setIsStrategiesExpanded(!isStrategiesExpanded)}
+        >
           <div className="settings-group-title">Исключения автоподбора</div>
+          <svg className="collapse-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
         </div>
-        <div className="settings-group-actions-row">
-          <div className="settings-group-actions">
-            <button className="compact-action-button" onClick={() => handleToggleAll(true)}>ВКЛ</button>
-            <div className="action-divider"></div>
-            <button className="compact-action-button" onClick={() => handleToggleAll(false)}>ВЫКЛ</button>
-          </div>
-        </div>
-        <div className="strategies-grid">
-          {allStrategies.map(strategy => (
-            <div 
-              key={strategy.value} 
-              className={`strategy-badge ${excludedStrategies.includes(strategy.value) ? "excluded" : "active"}`}
-              onClick={() => onToggleExcluded(strategy.value)}
-            >
-              {strategy.label.replace("General ", "G").replace("Fake TLS Auto", "TLS").replace("Simple Fake", "SF")}
+
+        <div className={`collapsible-wrapper ${isStrategiesExpanded ? "expanded" : ""}`}>
+          <div className="collapsible-content">
+            <div className="settings-group-actions-row">
+              <div className="settings-group-actions">
+                <button className="compact-action-button" onClick={() => handleToggleAll(true)}>ВКЛ</button>
+                <div className="action-divider"></div>
+                <button className="compact-action-button" onClick={() => handleToggleAll(false)}>ВЫКЛ</button>
+              </div>
             </div>
-          ))}
+            <div className="strategies-grid">
+              {allStrategies.map(strategy => (
+                <div 
+                  key={strategy.value} 
+                  className={`strategy-badge ${excludedStrategies.includes(strategy.value) ? "excluded" : "active"}`}
+                  onClick={() => onToggleExcluded(strategy.value)}
+                >
+                  {strategy.label.replace("General ", "G").replace("Fake TLS Auto", "TLS").replace("Simple Fake", "SF")}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

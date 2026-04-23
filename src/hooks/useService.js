@@ -22,7 +22,7 @@ export function useService() {
   const abortControllerRef = useRef(false);
   const activeStrategyLabel = STRATEGIES.find(s => s.value === settings.selectedStrategy)?.label || "Custom";
 
-  // Tray Sync
+  // Sync state with Tray icon
   useEffect(() => {
     invoke("update_tray_status", { isActive }).catch(err => {
       console.error("[Service] Failed to update tray status:", err);
@@ -53,7 +53,6 @@ export function useService() {
   };
 
   const startDiscovery = useCallback(async () => {
-    // Устанавливаем статус немедленно
     setStatus(APP_STATUS.DISCOVERY());
     
     const strategyValues = STRATEGIES
@@ -61,7 +60,7 @@ export function useService() {
       .map(s => s.value);
     
     if (strategyValues.length === 0) {
-      throw "Нет доступных стратегий для подбора (все в исключениях)";
+      throw "No strategies available for discovery (all excluded)";
     }
 
     const bestStrategy = await invoke("run_auto_discovery", {
@@ -105,7 +104,7 @@ export function useService() {
       if (settings.selectedStrategy === "auto") {
         await startDiscovery();
       } else {
-        // Оптимистичное обновление UI для мгновенного отклика
+        // Optimistic UI update for instant feedback
         setIsActive(true);
         setStatus(APP_STATUS.RUNNING(activeStrategyLabel));
         
@@ -129,6 +128,7 @@ export function useService() {
     toggleServiceRef.current = toggleService;
   }, [toggleService]);
 
+  // Listen for tray events
   useEffect(() => {
     const unlisten = listen("tray-toggle", () => {
       toggleService();
@@ -138,7 +138,7 @@ export function useService() {
     };
   }, [toggleService]);
 
-  // Initial Autoconnect
+  // Handle autoconnect on startup
   useEffect(() => {
     if (settings.isAutoConnect) {
       const timer = setTimeout(() => {

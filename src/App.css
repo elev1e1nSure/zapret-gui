@@ -19,6 +19,7 @@
     --dropdown-bg: rgba(49, 51, 56, 0.95);
     --titlebar-color: #b5bac1;
     --border-color: #2b2d31;
+    --error-color: #ed4245;
 }
 
 .theme-light {
@@ -87,6 +88,19 @@ html, body, #root {
 
 .titlebar-controls {
     display: flex;
+    position: relative;
+}
+
+/* Full-width backing for window controls */
+.titlebar-controls::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -1000px;
+    right: 0;
+    height: 32px;
+    background: var(--bg-color);
+    z-index: -1;
 }
 
 .titlebar-button {
@@ -108,7 +122,7 @@ html, body, #root {
 }
 
 .titlebar-button#titlebar-close:hover {
-    color: #ed4245;
+    color: var(--error-color);
 }
 
 .screen-container {
@@ -126,13 +140,30 @@ html, body, #root {
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding: 52px 15px 40px 15px; /* Increased top padding for titlebar safety */
     box-sizing: border-box;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .main-screen-content {
+    padding: 52px 15px 40px 15px;
     z-index: 40;
+}
+
+.settings-screen {
+    padding: 32px 0 0 0;
+    z-index: 50;
+    background-color: var(--bg-color);
+    overflow-y: auto;
+    scrollbar-width: none;
+    mask-image: linear-gradient(to bottom, 
+        black 0%, 
+        black calc(100% - 30px), 
+        transparent 100%
+    );
+}
+
+.settings-screen::-webkit-scrollbar {
+    display: none;
 }
 
 .show-main .main-screen-content {
@@ -208,7 +239,6 @@ html, body, #root {
     opacity: 0.8;
 }
 
-/* Dots Animation */
 .dots-anim::after {
   content: '';
   animation: dots 2s steps(4, end) infinite;
@@ -437,50 +467,18 @@ html, body, #root {
 }
 
 /* --- 7. Component: Settings Screen --- */
-.settings-screen {
-    z-index: 50;
-    background-color: var(--bg-color);
-    overflow-y: auto;
-    scrollbar-width: none;
-    padding: 40px 0 0 0; /* Вернул 40px сверху, убрал боковые и нижний */
-    box-sizing: border-box;
-    /* Subtle bottom gradient fade */
-    mask-image: linear-gradient(to bottom, 
-        black 0%, 
-        black calc(100% - 30px), 
-        transparent 100%
-    );
-}
-
-.settings-screen::-webkit-scrollbar {
-    display: none;
-}
-
 .settings-header {
-    height: 32px;
     display: flex;
     align-items: center;
-    margin-bottom: 35px;
-    padding: 0 20px 0 32px; /* Увеличил левый отступ с 20px до 32px */
+    margin-bottom: 12px;
+    padding: 0 16px 0 24px;
     pointer-events: none;
-}
-
-/* Full-width backing for window controls */
-.titlebar-controls::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -1000px; /* Extend far to the left to cover the whole horizontal line */
-    right: 0;
-    height: 32px;
-    background: var(--bg-color);
-    z-index: -1;
 }
 
 .settings-header-left {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     pointer-events: auto;
 }
 
@@ -495,7 +493,6 @@ html, body, #root {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-left: -8px;
     -webkit-app-region: no-drag;
 }
 
@@ -504,18 +501,23 @@ html, body, #root {
     color: var(--text-primary);
 }
 
+.back-button:active {
+    transform: scale(0.98);
+}
+
 .settings-title {
     color: var(--text-primary);
-    font-size: 20px;
+    font-size: 24px;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.02em;
+    line-height: 1;
 }
 
 .settings-content {
     display: flex;
     flex-direction: column;
-    padding: 0 16px 30px 16px; /* Небольшой отступ внизу для фейда, но без лишнего скролла */
+    padding: 0 16px 30px 16px;
 }
 
 .settings-group {
@@ -538,6 +540,28 @@ html, body, #root {
     border: 1px solid transparent;
 }
 
+.settings-item-wide:hover {
+    background: var(--strategy-hover);
+}
+
+.settings-item-label {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.settings-item-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+    margin-right: 16px;
+}
+
 .settings-group-header {
     display: flex;
     justify-content: space-between;
@@ -545,6 +569,56 @@ html, body, #root {
     margin: 32px 0 12px 0;
     padding: 0 4px 8px 4px;
     border-bottom: 1px solid var(--button-bg);
+}
+
+.settings-group-header.collapsible {
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-group-header.collapsible:hover {
+    opacity: 0.8;
+}
+
+.settings-group-header.collapsible:not(.expanded) {
+    margin-bottom: 0;
+}
+
+.settings-group-header.collapsible.expanded {
+    margin-bottom: 16px;
+}
+
+.collapse-chevron {
+    color: var(--text-secondary);
+    opacity: 0.3;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-group-header.expanded .collapse-chevron {
+    transform: rotate(180deg);
+    opacity: 0.6;
+}
+
+.collapsible-wrapper {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.collapsible-wrapper.expanded {
+    grid-template-rows: 1fr;
+}
+
+.collapsible-content {
+    min-height: 0;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+}
+
+.collapsible-wrapper.expanded .collapsible-content {
+    opacity: 1;
 }
 
 .settings-group-title {
@@ -649,29 +723,6 @@ html, body, #root {
 .theme-light .strategy-badge.active:hover {
     background: var(--accent-color);
     color: #ffffff;
-}
-
-.settings-item-wide:hover {
-    background: var(--strategy-hover);
-}
-
-.settings-item-label {
-    display: block;
-    color: var(--text-secondary);
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.2;
-    word-break: break-word;
-    overflow-wrap: break-word;
-}
-
-.settings-item-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-    min-width: 0;
-    margin-right: 16px;
 }
 
 /* Toggle Switch */

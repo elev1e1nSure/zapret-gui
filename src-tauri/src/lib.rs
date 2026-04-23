@@ -44,19 +44,19 @@ const REQUIRED_FILES: &[&str] = &[
 
 #[derive(Error, Debug)]
 pub enum AppError {
-    #[error("Ошибка пути: {0}")]
+    #[error("Path error: {0}")]
     Path(String),
-    #[error("Ошибка ввода-вывода: {0}")]
+    #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
-    #[error("Ошибка извлечения движка: {0}")]
+    #[error("Extraction error: {0}")]
     Extraction(String),
-    #[error("Ошибка сети: {0}")]
+    #[error("Network error: {0}")]
     Network(String),
-    #[error("Ошибка процесса: {0}")]
+    #[error("Process error: {0}")]
     Process(String),
-    #[error("Поиск отменен")]
+    #[error("Search aborted")]
     DiscoveryAborted,
-    #[error("Ошибка трея: {0}")]
+    #[error("Tray error: {0}")]
     Tray(String),
 }
 
@@ -77,12 +77,12 @@ struct AppState {
     tray: std::sync::Mutex<Option<tauri::tray::TrayIcon<tauri::Wry>>>,
 }
 
-// --- Модуль: Системные утилиты ---
+// --- Module: System Utilities ---
 mod sys_utils {
     use super::*;
 
     pub fn kill_winws() {
-        // Используем taskkill с фильтром по имени образа, чтобы минимизировать риск
+        // Kill any existing winws.exe processes silently
         let _ = Command::new("taskkill")
             .args(["/F", "/IM", "winws.exe", "/T"])
             .creation_flags(CREATE_NO_WINDOW)
@@ -94,9 +94,7 @@ mod sys_utils {
     pub fn add_to_defender_exclusions(path: &Path) {
         let path_str = path.to_string_lossy();
         
-        // Используем Add-MpPreference напрямую. Если Defender отключен или путь уже есть, 
-        // ErrorAction SilentlyContinue предотвратит ошибки.
-        // Запускаем через spawn(), чтобы не блокировать основной поток выполнения.
+        // Add engine directory to Windows Defender exclusions to prevent AV interference
         let script = format!("Add-MpPreference -ExclusionPath '{}' -ErrorAction SilentlyContinue", path_str);
         
         let _ = Command::new("powershell")
@@ -106,7 +104,7 @@ mod sys_utils {
     }
 }
 
-// --- Модуль: Движок Zapret ---
+// --- Module: Zapret Engine ---
 mod engine {
     use super::*;
     use super::sys_utils::kill_winws;
@@ -142,18 +140,18 @@ mod engine {
         let app_data = handle
             .path()
             .app_local_data_dir()
-            .map_err(|e| AppError::Path(format!("Ошибка получения AppData: {}", e)))?;
+            .map_err(|e| AppError::Path(format!("Failed to get AppData: {}", e)))?;
         
         let engine_dir = app_data.join("engine");
 
-        // Добавляем папку в исключения Defender при каждом запуске
+        // Ensure engine folder is excluded from Defender
         sys_utils::add_to_defender_exclusions(&engine_dir);
 
-        // Проверяем наличие всех критически важных файлов
+        // Check if critical engine files are missing
         let needs_extraction = !engine_dir.exists() || REQUIRED_FILES.iter().any(|f| !engine_dir.join(f).exists());
 
         if needs_extraction {
-            println!("[ZAPRET DEBUG] (Пере)распаковка движка в {:?}", engine_dir);
+            println!("[ZAPRET DEBUG] Extracting engine to {:?}", engine_dir);
             kill_winws();
             
             if !engine_dir.exists() {
@@ -175,7 +173,7 @@ mod engine {
             return Ok(strategy_path);
         }
 
-        // Поиск без учета регистра
+        // Case-insensitive search as fallback
         if let Ok(entries) = std::fs::read_dir(&engine_dir) {
             let name_lower = file_name.to_lowercase();
             for entry in entries.flatten() {
@@ -185,12 +183,12 @@ mod engine {
             }
         }
 
-        Err(AppError::Path(format!("Стратегия '{}' не найдена. Пожалуйста, проверьте целостность файлов.", file_name)))
+        Err(AppError::Path(format!("Strategy '{}' not found. Please check file integrity.", file_name)))
     }
 
     pub fn execute_strategy(_handle: &AppHandle, path: &Path, is_game_filter: bool) -> AppResult<()> {
-        let parent = path.parent().ok_or_else(|| AppError::Path("Некорректная директория движка".into()))?;
-        let file_name = path.file_name().ok_or_else(|| AppError::Path("Некорректное имя файла".into()))?;
+        let parent = path.parent().ok_or_else(|| AppError::Path("Invalid engine directory".into()))?;
+        let file_name = path.file_name().ok_or_else(|| AppError::Path("Invalid file name".into()))?;
         
         let mut cmd = Command::new("cmd");
         cmd.args(["/C", &file_name.to_string_lossy()])
@@ -203,17 +201,17 @@ mod engine {
            .env("GameFilterUDP", filter_val);
 
         cmd.spawn().map(|_| ()).map_err(|e| {
-            AppError::Process(format!("Ошибка запуска {}: {}", file_name.to_string_lossy(), e))
+            AppError::Process(format!("Failed to start {}: {}", file_name.to_string_lossy(), e))
         })
     }
 
     pub fn stop_zapret() {
-        println!("[ZAPRET DEBUG] Остановка сервиса...");
+        println!("[ZAPRET DEBUG] Stopping service...");
         kill_winws();
     }
 }
 
-// --- Модуль: Автозагрузка (Registry) ---
+// --- Module: Autostart (Task Scheduler) ---
 mod autostart {
     use super::*;
 
@@ -224,13 +222,13 @@ mod autostart {
             .to_string();
 
         if enable {
-            // Очищаем старый метод (реестр), если он там был
+            // Remove legacy registry entry if exists
             let _ = Command::new("reg")
                 .args(["delete", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "/v", "ZapretGUI", "/f"])
                 .creation_flags(CREATE_NO_WINDOW)
                 .status();
 
-            // Используем Task Scheduler для обхода UAC и запуска с правами админа
+            // Use Task Scheduler for UAC bypass and high privilege execution
             Command::new("schtasks")
                 .args([
                     "/create",
@@ -266,7 +264,7 @@ mod autostart {
     }
 }
 
-// --- Tauri команды ---
+// --- Tauri Commands ---
 
 #[tauri::command]
 async fn run_strategy(handle: AppHandle, name: String, is_game_filter: bool) -> AppResult<()> {
@@ -325,12 +323,12 @@ async fn run_auto_discovery(
         }
 
         if matched {
-            println!("[ZAPRET DEBUG] Найдена подходящая стратегия: {}", strategy);
+            println!("[ZAPRET DEBUG] Matched strategy: {}", strategy);
             return Ok(strategy);
         }
     }
 
-    Err(AppError::Network("Ни одна стратегия не подошла".into()))
+    Err(AppError::Network("No working strategy found".into()))
 }
 
 #[tauri::command]
@@ -342,7 +340,7 @@ async fn stop_service() -> AppResult<()> {
 #[tauri::command]
 async fn update_tray_status(state: State<'_, AppState>, is_active: bool) -> AppResult<()> {
     if let Some(item) = state.toggle_item.lock().unwrap().as_ref() {
-        item.set_text(if is_active { "Выключить" } else { "Включить" })
+        item.set_text(if is_active { "Turn Off" } else { "Turn On" })
             .map_err(|e| AppError::Tray(e.to_string()))?;
     }
     Ok(())
@@ -371,14 +369,13 @@ async fn set_autostart(enable: bool) -> AppResult<()> {
     autostart::set_enabled(enable)
 }
 
-// --- Настройка Трей-меню ---
+// --- Tray Menu Setup ---
 
 fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
-    let toggle_item = MenuItem::with_id(app, "toggle", "Включить", true, None::<&str>)?;
-    let show_item = MenuItem::with_id(app, "show", "Показать", true, None::<&str>)?;
-    let quit_item = MenuItem::with_id(app, "quit", "Выход", true, None::<&str>)?;
+    let toggle_item = MenuItem::with_id(app, "toggle", "Turn On", true, None::<&str>)?;
+    let show_item = MenuItem::with_id(app, "show", "Show Window", true, None::<&str>)?;
+    let quit_item = MenuItem::with_id(app, "quit", "Exit", true, None::<&str>)?;
     
-    // Сохраняем пункт меню в состояние для обновлений
     let state = app.state::<AppState>();
     *state.toggle_item.lock().unwrap() = Some(toggle_item.clone());
 
@@ -422,7 +419,6 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         })
         .build(app)?;
 
-    // Сохраняем объект трея, чтобы он не удалялся при выходе из области видимости
     *state.tray.lock().unwrap() = Some(tray);
 
     Ok(())
