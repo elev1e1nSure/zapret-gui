@@ -1,3 +1,5 @@
+import { STRATEGIES } from "../config";
+
 export function SettingsScreen({ 
   onBack, 
   onThemeToggle, 
@@ -7,8 +9,25 @@ export function SettingsScreen({
   isAutoConnect,
   onAutoConnectToggle,
   isMinimizeToTray,
-  onMinimizeToTrayToggle
+  onMinimizeToTrayToggle,
+  isGameFilter,
+  onGameFilterToggle,
+  excludedStrategies,
+  onToggleExcluded
 }) {
+  const allStrategies = STRATEGIES.filter(s => s.value !== "auto");
+  
+  const handleToggleAll = (enable) => {
+    allStrategies.forEach(s => {
+      const isCurrentlyExcluded = excludedStrategies.includes(s.value);
+      if (enable && isCurrentlyExcluded) {
+        onToggleExcluded(s.value);
+      } else if (!enable && !isCurrentlyExcluded) {
+        onToggleExcluded(s.value);
+      }
+    });
+  };
+
   return (
     <div className="settings-screen">
       <div className="settings-header">
@@ -64,6 +83,37 @@ export function SettingsScreen({
               <div className="toggle-handle"></div>
             </div>
           </div>
+
+          <div className="settings-item-wide" onClick={onGameFilterToggle}>
+            <div className="settings-item-left">
+              <span className="settings-item-label">Игровой фильтр</span>
+            </div>
+            <div className={`toggle-switch ${isGameFilter ? "active" : ""}`}>
+              <div className="toggle-handle"></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-group-header">
+          <div className="settings-group-title">Исключения автоподбора</div>
+        </div>
+        <div className="settings-group-actions-row">
+          <div className="settings-group-actions">
+            <button className="compact-action-button" onClick={() => handleToggleAll(true)}>ВКЛ</button>
+            <div className="action-divider"></div>
+            <button className="compact-action-button" onClick={() => handleToggleAll(false)}>ВЫКЛ</button>
+          </div>
+        </div>
+        <div className="strategies-grid">
+          {allStrategies.map(strategy => (
+            <div 
+              key={strategy.value} 
+              className={`strategy-badge ${excludedStrategies.includes(strategy.value) ? "excluded" : "active"}`}
+              onClick={() => onToggleExcluded(strategy.value)}
+            >
+              {strategy.label.replace("General ", "G").replace("Fake TLS Auto", "TLS").replace("Simple Fake", "SF")}
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -16,7 +16,7 @@ function App() {
     selectedStrategy,
     setSelectedStrategy,
     isExiting,
-    dots,
+    isDiscovery,
     isDropdownOpen,
     setIsDropdownOpen,
     toggleService,
@@ -28,6 +28,10 @@ function App() {
     toggleAutoConnect,
     isMinimizeToTray,
     toggleMinimizeToTray,
+    isGameFilter,
+    toggleGameFilter,
+    excludedStrategies,
+    toggleExcludedStrategy,
     currentScreen,
     setCurrentScreen
   } = useService();
@@ -76,7 +80,7 @@ function App() {
 
       <div className={`screen-container ${currentScreen === "main" ? "show-main" : "show-settings"}`}>
         <div className="main-screen-content">
-          <StatusHeader status={status} dots={dots} />
+          <StatusHeader status={status} isDiscovery={isDiscovery} />
 
           <PowerButton 
             isActive={isActive}
@@ -101,16 +105,20 @@ function App() {
         </div>
 
         <SettingsScreen 
-          onBack={() => setCurrentScreen("main")} 
-          onThemeToggle={handleThemeToggle}
-          theme={theme}
-          isAutostart={isAutostart}
-          onAutostartToggle={toggleAutostart}
-          isAutoConnect={isAutoConnect}
-          onAutoConnectToggle={toggleAutoConnect}
-          isMinimizeToTray={isMinimizeToTray}
-          onMinimizeToTrayToggle={toggleMinimizeToTray}
-        />
+            onBack={() => setCurrentScreen("main")}
+            theme={theme}
+            onThemeToggle={handleThemeToggle}
+            isAutostart={isAutostart}
+            onAutostartToggle={toggleAutostart}
+            isAutoConnect={isAutoConnect}
+            onAutoConnectToggle={toggleAutoConnect}
+            isMinimizeToTray={isMinimizeToTray}
+            onMinimizeToTrayToggle={toggleMinimizeToTray}
+            isGameFilter={isGameFilter}
+            onGameFilterToggle={toggleGameFilter}
+            excludedStrategies={excludedStrategies}
+            onToggleExcluded={toggleExcludedStrategy}
+          />
       </div>
 
       {transitionOverlay && (

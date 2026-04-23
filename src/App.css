@@ -28,8 +28,8 @@
     --accent-hover: #df0000;
     --button-bg: #e3e5e8;
     --button-hover: #dbdee1;
-    --text-primary: #060607;
-    --text-secondary: #4e5058;
+    --text-primary: #2e3338;
+    --text-secondary: #5c6066;
     --strategy-bg: #f2f3f5;
     --strategy-hover: #e3e5e8;
     --dropdown-bg: rgba(242, 243, 245, 0.95);
@@ -126,7 +126,7 @@ html, body, #root {
     height: 100%;
     display: flex;
     flex-direction: column;
-    padding: 40px 15px;
+    padding: 52px 15px 40px 15px; /* Increased top padding for titlebar safety */
     box-sizing: border-box;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -206,6 +206,20 @@ html, body, #root {
     font-weight: 300;
     pointer-events: none;
     opacity: 0.8;
+}
+
+/* Dots Animation */
+.dots-anim::after {
+  content: '';
+  animation: dots 2s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+  100% { content: ''; }
 }
 
 .app-window.active .status-text {
@@ -426,6 +440,20 @@ html, body, #root {
 .settings-screen {
     z-index: 50;
     background-color: var(--bg-color);
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding: 40px 0 0 0; /* Вернул 40px сверху, убрал боковые и нижний */
+    box-sizing: border-box;
+    /* Subtle bottom gradient fade */
+    mask-image: linear-gradient(to bottom, 
+        black 0%, 
+        black calc(100% - 30px), 
+        transparent 100%
+    );
+}
+
+.settings-screen::-webkit-scrollbar {
+    display: none;
 }
 
 .settings-header {
@@ -433,8 +461,20 @@ html, body, #root {
     display: flex;
     align-items: center;
     margin-bottom: 35px;
-    padding-left: 20px;
+    padding: 0 20px 0 32px; /* Увеличил левый отступ с 20px до 32px */
     pointer-events: none;
+}
+
+/* Full-width backing for window controls */
+.titlebar-controls::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -1000px; /* Extend far to the left to cover the whole horizontal line */
+    right: 0;
+    height: 32px;
+    background: var(--bg-color);
+    z-index: -1;
 }
 
 .settings-header-left {
@@ -475,7 +515,7 @@ html, body, #root {
 .settings-content {
     display: flex;
     flex-direction: column;
-    padding: 0 10px;
+    padding: 0 16px 30px 16px; /* Небольшой отступ внизу для фейда, но без лишнего скролла */
 }
 
 .settings-group {
@@ -496,6 +536,119 @@ html, body, #root {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     box-sizing: border-box;
     border: 1px solid transparent;
+}
+
+.settings-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 32px 0 12px 0;
+    padding: 0 4px 8px 4px;
+    border-bottom: 1px solid var(--button-bg);
+}
+
+.settings-group-title {
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.5;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.settings-group-actions-row {
+    display: flex;
+    justify-content: flex-start;
+    margin: 0 0 16px 0;
+}
+
+.settings-group-actions {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--button-bg);
+    padding: 3px;
+    border-radius: 8px;
+    -webkit-app-region: no-drag;
+}
+
+.compact-action-button {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 800;
+    padding: 6px 16px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    opacity: 0.7;
+}
+
+.compact-action-button:hover {
+    opacity: 1;
+    background: var(--button-hover);
+    color: var(--text-primary);
+}
+
+.action-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--text-secondary);
+    opacity: 0.2;
+}
+
+.strategies-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 0;
+    margin: 0 0 24px 0;
+}
+
+.strategy-badge {
+    padding: 12px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.strategy-badge.active {
+    background: var(--accent-color-alpha);
+    color: var(--accent-color);
+}
+
+.strategy-badge.excluded {
+    background: var(--button-bg);
+    color: var(--text-secondary);
+    opacity: 0.4;
+}
+
+.strategy-badge:hover {
+    filter: brightness(1.2);
+}
+
+.strategy-badge.active:hover {
+    background: var(--accent-color);
+    color: #ffffff;
+}
+
+.theme-light .strategy-badge.active {
+    background: rgba(255, 0, 0, 0.1);
+    color: var(--accent-color);
+}
+
+.theme-light .strategy-badge.active:hover {
+    background: var(--accent-color);
+    color: #ffffff;
 }
 
 .settings-item-wide:hover {
@@ -530,6 +683,7 @@ html, body, #root {
     border-radius: 20px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
+    -webkit-app-region: no-drag;
 }
 
 .toggle-switch.active {

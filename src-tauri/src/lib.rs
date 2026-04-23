@@ -16,6 +16,32 @@ static ENGINE_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/engine");
 
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
+const REQUIRED_FILES: &[&str] = &[
+    "bin/winws.exe",
+    "bin/WinDivert.dll",
+    "bin/WinDivert64.sys",
+    "bin/cygwin1.dll",
+    "general_silent.bat",
+    "general (ALT)_silent.bat",
+    "general (ALT2)_silent.bat",
+    "general (ALT3)_silent.bat",
+    "general (ALT4)_silent.bat",
+    "general (ALT5)_silent.bat",
+    "general (ALT6)_silent.bat",
+    "general (ALT7)_silent.bat",
+    "general (ALT8)_silent.bat",
+    "general (ALT9)_silent.bat",
+    "general (ALT10)_silent.bat",
+    "general (ALT11)_silent.bat",
+    "general (FAKE TLS AUTO)_silent.bat",
+    "general (FAKE TLS AUTO ALT)_silent.bat",
+    "general (FAKE TLS AUTO ALT2)_silent.bat",
+    "general (FAKE TLS AUTO ALT3)_silent.bat",
+    "general (SIMPLE FAKE)_silent.bat",
+    "general (SIMPLE FAKE ALT)_silent.bat",
+    "general (SIMPLE FAKE ALT2)_silent.bat",
+];
+
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("Ошибка пути: {0}")]
@@ -48,16 +74,12 @@ pub type AppResult<T> = Result<T, AppError>;
 struct AppState {
     cancel_discovery: Arc<AtomicBool>,
     toggle_item: std::sync::Mutex<Option<tauri::menu::MenuItem<tauri::Wry>>>,
+    tray: std::sync::Mutex<Option<tauri::tray::TrayIcon<tauri::Wry>>>,
 }
 
 // --- Модуль: Системные утилиты ---
 mod sys_utils {
     use super::*;
-
-    pub fn clean_unc_path(path: &Path) -> String {
-        let path_str = path.to_string_lossy();
-        path_str.strip_prefix(r"\\?\").unwrap_or(&path_str).to_string()
-    }
 
     pub fn kill_winws() {
         // Используем taskkill с фильтром по имени образа, чтобы минимизировать риск
@@ -68,12 +90,26 @@ mod sys_utils {
             .stderr(std::process::Stdio::null())
             .status();
     }
+
+    pub fn add_to_defender_exclusions(path: &Path) {
+        let path_str = path.to_string_lossy();
+        
+        // Используем Add-MpPreference напрямую. Если Defender отключен или путь уже есть, 
+        // ErrorAction SilentlyContinue предотвратит ошибки.
+        // Запускаем через spawn(), чтобы не блокировать основной поток выполнения.
+        let script = format!("Add-MpPreference -ExclusionPath '{}' -ErrorAction SilentlyContinue", path_str);
+        
+        let _ = Command::new("powershell")
+            .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &script])
+            .creation_flags(CREATE_NO_WINDOW)
+            .spawn();
+    }
 }
 
 // --- Модуль: Движок Zapret ---
 mod engine {
     use super::*;
-    use super::sys_utils::{clean_unc_path, kill_winws};
+    use super::sys_utils::kill_winws;
 
     pub async fn check_connection() -> bool {
         let client = Client::builder()
@@ -103,54 +139,76 @@ mod engine {
     }
 
     pub fn extract_engine(handle: &AppHandle) -> AppResult<PathBuf> {
-        let engine_dir = handle
+        let app_data = handle
             .path()
             .app_local_data_dir()
-            .map_err(|e| AppError::Path(e.to_string()))?
-            .join("engine");
+            .map_err(|e| AppError::Path(format!("Ошибка получения AppData: {}", e)))?;
+        
+        let engine_dir = app_data.join("engine");
 
-        let is_empty = !engine_dir.exists() || 
-            std::fs::read_dir(&engine_dir).map(|mut d| d.next().is_none()).unwrap_or(true);
+        // Добавляем папку в исключения Defender при каждом запуске
+        sys_utils::add_to_defender_exclusions(&engine_dir);
 
-        if is_empty {
-            println!("[Zapret] Распаковка движка в {:?}", engine_dir);
-            std::fs::create_dir_all(&engine_dir)?;
-            ENGINE_DIR
-                .extract(&engine_dir)
-                .map_err(|e| AppError::Extraction(e.to_string()))?;
+        // Проверяем наличие всех критически важных файлов
+        let needs_extraction = !engine_dir.exists() || REQUIRED_FILES.iter().any(|f| !engine_dir.join(f).exists());
+
+        if needs_extraction {
+            println!("[ZAPRET DEBUG] (Пере)распаковка движка в {:?}", engine_dir);
+            kill_winws();
+            
+            if !engine_dir.exists() {
+                std::fs::create_dir_all(&engine_dir).map_err(AppError::Io)?;
+            }
+
+            ENGINE_DIR.extract(&engine_dir).map_err(|e| AppError::Extraction(e.to_string()))?;
         }
 
         Ok(engine_dir)
     }
 
     pub fn resolve_strategy_path(handle: &AppHandle, name: &str) -> AppResult<PathBuf> {
-        let strategy_path = extract_engine(handle)?.join(name);
+        let engine_dir = extract_engine(handle)?;
+        let file_name = if name.ends_with(".bat") { name.to_string() } else { format!("{}.bat", name) };
+        let strategy_path = engine_dir.join(&file_name);
 
         if strategy_path.exists() {
-            Ok(strategy_path)
-        } else {
-            Err(AppError::Path(format!("Файл стратегии не найден: {}", name)))
+            return Ok(strategy_path);
         }
+
+        // Поиск без учета регистра
+        if let Ok(entries) = std::fs::read_dir(&engine_dir) {
+            let name_lower = file_name.to_lowercase();
+            for entry in entries.flatten() {
+                if entry.file_name().to_string_lossy().to_lowercase() == name_lower {
+                    return Ok(entry.path());
+                }
+            }
+        }
+
+        Err(AppError::Path(format!("Стратегия '{}' не найдена. Пожалуйста, проверьте целостность файлов.", file_name)))
     }
 
-    pub fn execute_strategy(path: &Path) -> AppResult<()> {
-        let parent = path.parent().ok_or_else(|| AppError::Path("Некорректный путь".into()))?;
-        let clean_path = clean_unc_path(path);
+    pub fn execute_strategy(_handle: &AppHandle, path: &Path, is_game_filter: bool) -> AppResult<()> {
+        let parent = path.parent().ok_or_else(|| AppError::Path("Некорректная директория движка".into()))?;
+        let file_name = path.file_name().ok_or_else(|| AppError::Path("Некорректное имя файла".into()))?;
         
-        println!("[Zapret] Запуск стратегии: {}", clean_path);
-        
-        Command::new("cmd")
-            .args(["/C", &clean_path])
-            .current_dir(clean_unc_path(parent))
-            .creation_flags(CREATE_NO_WINDOW)
-            .spawn()
-            .map_err(|e| AppError::Process(e.to_string()))?;
+        let mut cmd = Command::new("cmd");
+        cmd.args(["/C", &file_name.to_string_lossy()])
+            .current_dir(parent)
+            .creation_flags(CREATE_NO_WINDOW);
 
-        Ok(())
+        let filter_val = if is_game_filter { "1024-65535" } else { "12" };
+        cmd.env("GameFilter", filter_val)
+           .env("GameFilterTCP", filter_val)
+           .env("GameFilterUDP", filter_val);
+
+        cmd.spawn().map(|_| ()).map_err(|e| {
+            AppError::Process(format!("Ошибка запуска {}: {}", file_name.to_string_lossy(), e))
+        })
     }
 
     pub fn stop_zapret() {
-        println!("[Zapret] Остановка сервиса...");
+        println!("[ZAPRET DEBUG] Остановка сервиса...");
         kill_winws();
     }
 }
@@ -159,63 +217,61 @@ mod engine {
 mod autostart {
     use super::*;
 
-    const REG_KEY: &str = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-    const APP_NAME: &str = "ZapretGUI";
-
-    pub fn is_enabled() -> bool {
-        let exe_path = std::env::current_exe()
-            .map(|p| p.to_string_lossy().to_lowercase())
-            .unwrap_or_default();
-        
-        if exe_path.is_empty() { return false; }
-        
-        let output = Command::new("reg")
-            .args(["query", REG_KEY, "/v", APP_NAME])
-            .creation_flags(CREATE_NO_WINDOW)
-            .output();
-        
-        if let Ok(out) = output {
-            if out.status.success() {
-                let s = String::from_utf8_lossy(&out.stdout).to_lowercase();
-                return s.replace("\"", "").contains(&exe_path);
-            }
-        }
-        false
-    }
-
     pub fn set_enabled(enable: bool) -> AppResult<()> {
-        let exe_path = std::env::current_exe()?
+        let exe_path = std::env::current_exe()
+            .map_err(|e| AppError::Process(e.to_string()))?
             .to_string_lossy()
-            .into_owned();
-        
-        let mut cmd = Command::new("reg");
-        cmd.creation_flags(CREATE_NO_WINDOW);
+            .to_string();
 
         if enable {
-            println!("[Zapret] Включение автозагрузки...");
-            cmd.args(["add", REG_KEY, "/v", APP_NAME, "/t", "REG_SZ", "/d", &format!("\"{}\"", exe_path), "/f"]);
-        } else {
-            println!("[Zapret] Отключение автозагрузки...");
-            cmd.args(["delete", REG_KEY, "/v", APP_NAME, "/f"]);
-        }
+            // Очищаем старый метод (реестр), если он там был
+            let _ = Command::new("reg")
+                .args(["delete", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "/v", "ZapretGUI", "/f"])
+                .creation_flags(CREATE_NO_WINDOW)
+                .status();
 
-        let status = cmd.status()?;
-        if status.success() {
-            Ok(())
+            // Используем Task Scheduler для обхода UAC и запуска с правами админа
+            Command::new("schtasks")
+                .args([
+                    "/create",
+                    "/tn", "ZapretGUI",
+                    "/tr", &format!("\"{}\"", exe_path),
+                    "/sc", "onlogon",
+                    "/rl", "highest",
+                    "/f"
+                ])
+                .creation_flags(CREATE_NO_WINDOW)
+                .status()
+                .map_err(|e| AppError::Process(e.to_string()))?;
         } else {
-            let err_msg = format!("Ошибка реестра (exit code: {:?})", status.code());
-            println!("[Zapret] Error: {}", err_msg);
-            Err(AppError::Process(err_msg))
+            Command::new("schtasks")
+                .args(["/delete", "/tn", "ZapretGUI", "/f"])
+                .creation_flags(CREATE_NO_WINDOW)
+                .status()
+                .map_err(|e| AppError::Process(e.to_string()))?;
         }
+        Ok(())
+    }
+
+    pub fn is_enabled() -> bool {
+        let output = Command::new("schtasks")
+            .args(["/query", "/tn", "ZapretGUI"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output();
+
+        if let Ok(out) = output {
+            return out.status.success();
+        }
+        false
     }
 }
 
 // --- Tauri команды ---
 
 #[tauri::command]
-async fn run_strategy(handle: AppHandle, name: String) -> AppResult<()> {
+async fn run_strategy(handle: AppHandle, name: String, is_game_filter: bool) -> AppResult<()> {
     let strategy_path = engine::resolve_strategy_path(&handle, &name)?;
-    engine::execute_strategy(&strategy_path)
+    engine::execute_strategy(&handle, &strategy_path, is_game_filter)
 }
 
 #[tauri::command]
@@ -229,6 +285,7 @@ async fn run_auto_discovery(
     handle: AppHandle,
     state: State<'_, AppState>,
     strategies: Vec<String>,
+    is_game_filter: bool,
 ) -> AppResult<String> {
     state.cancel_discovery.store(false, Ordering::SeqCst);
 
@@ -240,7 +297,7 @@ async fn run_auto_discovery(
         let _ = stop_service().await;
         let strategy_path = engine::resolve_strategy_path(&handle, &strategy)?;
 
-        if engine::execute_strategy(&strategy_path).is_err() {
+        if engine::execute_strategy(&handle, &strategy_path, is_game_filter).is_err() {
             continue;
         }
 
@@ -268,7 +325,7 @@ async fn run_auto_discovery(
         }
 
         if matched {
-            println!("[Zapret] Найдена подходящая стратегия: {}", strategy);
+            println!("[ZAPRET DEBUG] Найдена подходящая стратегия: {}", strategy);
             return Ok(strategy);
         }
     }
@@ -327,8 +384,11 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
 
     let menu = Menu::with_items(app, &[&toggle_item, &show_item, &quit_item])?;
 
-    let _tray = TrayIconBuilder::with_id("main_tray")
-        .icon(app.default_window_icon().unwrap().clone())
+    let tray_icon = app.default_window_icon().cloned()
+        .ok_or_else(|| tauri::Error::AssetNotFound("Default window icon not found".to_string()))?;
+
+    let tray = TrayIconBuilder::with_id("main_tray")
+        .icon(tray_icon)
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
@@ -362,6 +422,9 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
         })
         .build(app)?;
 
+    // Сохраняем объект трея, чтобы он не удалялся при выходе из области видимости
+    *state.tray.lock().unwrap() = Some(tray);
+
     Ok(())
 }
 
@@ -369,11 +432,13 @@ fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
 pub fn run() {
     let cancel_discovery = Arc::new(AtomicBool::new(false));
     let toggle_item_store = std::sync::Mutex::new(None);
+    let tray_store = std::sync::Mutex::new(None);
 
     tauri::Builder::default()
         .manage(AppState {
             cancel_discovery,
             toggle_item: toggle_item_store,
+            tray: tray_store,
         })
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
@@ -399,6 +464,8 @@ pub fn run() {
             if let Some(window) = app.get_webview_window("main") {
                 #[cfg(target_os = "windows")]
                 let _ = window.set_shadow(false);
+                let _ = window.show();
+                let _ = window.set_focus();
             }
             Ok(())
         })

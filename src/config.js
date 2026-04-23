@@ -22,7 +22,7 @@ export const STRATEGIES = [
 ];
 
 export const TIMEOUTS = {
-  UI_SPINNER_DELAY: 500,
+  UI_SPINNER_DELAY: 50, // Минимальная задержка для мгновенного отклика
   AUTO_CONNECT_DELAY: 1000,
   TRAY_SYNC_DELAY: 500,
   PROCESS_FINALIZE_DELAY: 300,

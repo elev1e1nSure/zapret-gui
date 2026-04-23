@@ -18,7 +18,7 @@ export function useService() {
     isExiting: false
   });
 
-  const { showLoadingUI, dots } = useServiceUI(processState.isLoading, status);
+  const { showLoadingUI, isDiscovery } = useServiceUI(processState.isLoading, status);
   const abortControllerRef = useRef(false);
   const activeStrategyLabel = STRATEGIES.find(s => s.value === settings.selectedStrategy)?.label || "Custom";
 
@@ -52,6 +52,31 @@ export function useService() {
     finalizeProcess();
   };
 
+  const startDiscovery = useCallback(async () => {
+    // Устанавливаем статус немедленно
+    setStatus(APP_STATUS.DISCOVERY());
+    
+    const strategyValues = STRATEGIES
+      .filter(s => s.value !== "auto" && !settings.excludedStrategies.includes(s.value))
+      .map(s => s.value);
+    
+    if (strategyValues.length === 0) {
+      throw "Нет доступных стратегий для подбора (все в исключениях)";
+    }
+
+    const bestStrategy = await invoke("run_auto_discovery", {
+      strategies: strategyValues,
+      isGameFilter: settings.isGameFilter
+    });
+    
+    if (!abortControllerRef.current) {
+      settings.setSelectedStrategy(bestStrategy);
+      setIsActive(true);
+      const label = STRATEGIES.find(s => s.value === bestStrategy)?.label || "Custom";
+      setStatus(APP_STATUS.MATCHED(label));
+    }
+  }, [settings]);
+
   const toggleService = useCallback(async () => {
     if (processState.isLoading) {
       await abortDiscovery();
@@ -78,23 +103,16 @@ export function useService() {
     
     try {
       if (settings.selectedStrategy === "auto") {
-        setStatus(APP_STATUS.DISCOVERY());
-        const strategyValues = STRATEGIES
-          .filter(s => s.value !== "auto")
-          .map(s => s.value);
-        
-        const bestStrategy = await invoke("run_auto_discovery", { strategies: strategyValues });
-        
-        if (!abortControllerRef.current) {
-          settings.setSelectedStrategy(bestStrategy);
-          setIsActive(true);
-          const label = STRATEGIES.find(s => s.value === bestStrategy)?.label || "Custom";
-          setStatus(APP_STATUS.MATCHED(label));
-        }
+        await startDiscovery();
       } else {
-        await invoke("run_strategy", { name: settings.selectedStrategy });
+        // Оптимистичное обновление UI для мгновенного отклика
         setIsActive(true);
         setStatus(APP_STATUS.RUNNING(activeStrategyLabel));
+        
+        await invoke("run_strategy", {
+          name: settings.selectedStrategy,
+          isGameFilter: settings.isGameFilter
+        });
       }
     } catch (error) {
       if (!abortControllerRef.current && error !== APP_STATUS.DISCOVERY_ABORTED()) {
@@ -104,7 +122,7 @@ export function useService() {
     } finally {
       setProcessState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [isActive, processState.isLoading, settings, activeStrategyLabel, finalizeProcess]);
+  }, [isActive, processState.isLoading, settings, activeStrategyLabel, finalizeProcess, startDiscovery]);
 
   const toggleServiceRef = useRef(toggleService);
   useEffect(() => {
@@ -139,7 +157,7 @@ export function useService() {
     isExiting: processState.isExiting,
     selectedStrategy: settings.selectedStrategy,
     setSelectedStrategy: settings.setSelectedStrategy,
-    dots,
+    isDiscovery,
     isDropdownOpen,
     setIsDropdownOpen,
     toggleService,
@@ -152,6 +170,10 @@ export function useService() {
     toggleAutoConnect: settings.toggleAutoConnect,
     isMinimizeToTray: settings.isMinimizeToTray,
     toggleMinimizeToTray: settings.toggleMinimizeToTray,
+    isGameFilter: settings.isGameFilter,
+    toggleGameFilter: settings.toggleGameFilter,
+    excludedStrategies: settings.excludedStrategies,
+    toggleExcludedStrategy: settings.toggleExcludedStrategy,
     currentScreen,
     setCurrentScreen
   };

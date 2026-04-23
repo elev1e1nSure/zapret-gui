@@ -28,6 +28,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Zapret",
         "width": 280,
         "height": 400,

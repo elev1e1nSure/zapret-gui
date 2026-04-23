@@ -20,9 +20,25 @@ export function useSettings() {
     return saved === null ? true : saved === "true";
   });
 
+  const [excludedStrategies, setExcludedStrategies] = useState(() => {
+    try {
+      const saved = localStorage.getItem("zapret_excluded_strategies");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [isAutostart, setIsAutostart] = useState(false);
+  const [isGameFilter, setIsGameFilter] = useState(() => {
+    return localStorage.getItem("zapret_game_filter") === "true";
+  });
 
   // Persistence effects
+  useEffect(() => {
+    localStorage.setItem("zapret_excluded_strategies", JSON.stringify(excludedStrategies));
+  }, [excludedStrategies]);
+
   useEffect(() => {
     localStorage.setItem("zapret_strategy", selectedStrategy);
   }, [selectedStrategy]);
@@ -42,17 +58,15 @@ export function useSettings() {
     });
   }, [isMinimizeToTray]);
 
+  useEffect(() => {
+    localStorage.setItem("zapret_game_filter", isGameFilter.toString());
+  }, [isGameFilter]);
+
   // Initial loads
   useEffect(() => {
     invoke("is_autostart_enabled")
       .then(setIsAutostart)
       .catch(err => console.error("[Settings] Failed to check autostart:", err));
-    
-    const timer = setTimeout(() => {
-      invoke("set_tray_visible", { visible: isMinimizeToTray }).catch(() => {});
-    }, TIMEOUTS.TRAY_SYNC_DELAY);
-
-    return () => clearTimeout(timer);
   }, []);
 
   const toggleAutostart = async () => {
@@ -67,10 +81,21 @@ export function useSettings() {
 
   const toggleAutoConnect = () => setIsAutoConnect(prev => !prev);
   const toggleMinimizeToTray = () => setIsMinimizeToTray(prev => !prev);
+  const toggleGameFilter = () => setIsGameFilter(prev => !prev);
+
+  const toggleExcludedStrategy = (value) => {
+    setExcludedStrategies(prev => 
+      prev.includes(value) 
+        ? prev.filter(v => v !== value) 
+        : [...prev, value]
+    );
+  };
 
   return {
     selectedStrategy,
     setSelectedStrategy,
+    excludedStrategies,
+    toggleExcludedStrategy,
     theme,
     setTheme,
     isAutoConnect,
@@ -78,6 +103,8 @@ export function useSettings() {
     isMinimizeToTray,
     toggleMinimizeToTray,
     isAutostart,
-    toggleAutostart
+    toggleAutostart,
+    isGameFilter,
+    toggleGameFilter
   };
 }
