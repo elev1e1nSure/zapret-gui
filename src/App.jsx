@@ -54,21 +54,19 @@ function App() {
       isFading: false
     });
 
-    // Step 1: Switch the theme state when the circle covers enough area (~450ms)
-    setTimeout(() => {
-      setTheme(newTheme);
-    }, 450);
+    // Step 1: Switch theme once reveal mostly covers screen
+    setTimeout(() => setTheme(newTheme), 280);
 
-    // Step 2: Start fading out the overlay (~850ms)
+    // Step 2: Fade out overlay after reveal completes
     setTimeout(() => {
-      setTransitionOverlay(prev => prev ? { ...prev, isFading: true } : null);
-    }, 850);
+      setTransitionOverlay(prev => (prev ? { ...prev, isFading: true } : null));
+    }, 620);
 
-    // Step 3: Remove overlay completely (~1250ms)
+    // Step 3: Remove overlay completely
     overlayTimeoutRef.current = setTimeout(() => {
       setTransitionOverlay(null);
       overlayTimeoutRef.current = null;
-    }, 1250);
+    }, 980);
   };
 
   return (
