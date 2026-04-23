@@ -85,7 +85,7 @@ git tag -a v1.5.0 -m "Release 1.5.0"
 git push origin v1.5.0
 ```
 
-Attach the `.msi` and `.exe` installers to the GitHub release.
+Attach the `.msi`, NSIS `.exe` installer, and portable `zapret-gui.exe` to the GitHub release.
 
 ---
 
