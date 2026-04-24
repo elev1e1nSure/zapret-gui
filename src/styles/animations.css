@@ -1,0 +1,70 @@
+/* =====================================================================
+   Global Keyframes
+   ===================================================================== */
+
+@keyframes statusTextFade {
+  from { opacity: 0; filter: blur(1.2px); }
+  to   { opacity: 0.8; filter: blur(0); }
+}
+
+@keyframes iconFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes powerGlowBloom {
+  0%   { filter: drop-shadow(0 0 3px rgba(88, 101, 242, 0.18)); }
+  50%  { filter: drop-shadow(0 0 8px rgba(88, 101, 242, 0.30)); }
+  100% { filter: drop-shadow(0 0 5px rgba(88, 101, 242, 0.22)); }
+}
+
+@keyframes powerGlowBloomActive {
+  0%   { filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.18)); }
+  50%  { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.32)); }
+  100% { filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.24)); }
+}
+
+@keyframes fadeInOpacity {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeOutOpacity {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes circularReveal {
+  0%   { transform: translate(-50%, -50%) scale(0); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes tooltipFadeIn {
+  from { opacity: 0; transform: translate(-50%, -100%) translateY(8px) scale(0.95); }
+  to   { opacity: 1; transform: translate(-50%, -100%) translateY(-10px) scale(1); }
+}
+
+@keyframes tooltipFadeOut {
+  from { opacity: 1; transform: translate(-50%, -100%) translateY(-10px) scale(1); }
+  to   { opacity: 0; transform: translate(-50%, -100%) translateY(8px) scale(0.95); }
+}
+
+@keyframes feedbackFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 0.72; transform: translateY(0); }
+}
+
+@keyframes feedbackFadeOut {
+  from { opacity: 0.72; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(2px); }
+}
+
+@keyframes feedbackButtonOut {
+  from { opacity: 0.55; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(3px); }
+}

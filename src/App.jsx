@@ -174,6 +174,7 @@ function App() {
             isExiting={isExiting}
             isDropdownOpen={isDropdownOpen}
             setIsDropdownOpen={setIsDropdownOpen}
+            excludedStrategies={excludedStrategies}
           />
 
           <div className="feedback-anchor">
@@ -195,6 +196,7 @@ function App() {
 
         <SettingsScreen
           onBack={handleCloseSettings}
+          selectedStrategy={selectedStrategy}
           theme={theme}
           onThemeToggle={handleThemeToggle}
           isAutostart={isAutostart}

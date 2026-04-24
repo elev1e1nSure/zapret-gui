@@ -1,0 +1,70 @@
+/* =====================================================================
+   Component: Feedback Button & Toast ("Плохо работает?")
+   ===================================================================== */
+
+.feedback-anchor {
+  position: absolute;
+  bottom: 24px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  z-index: 45;
+}
+
+.feedback-btn {
+  pointer-events: auto;
+  background: transparent;
+  border: none;
+  outline: none;
+  border-radius: 20px;
+  padding: 5px 16px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  opacity: 0.55;
+  animation: feedbackFadeIn 0.6s ease forwards;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.feedback-btn:hover {
+  opacity: 0.85;
+  background: var(--button-bg);
+}
+
+.feedback-btn:active {
+  opacity: 0.4;
+}
+
+.feedback-btn.closing {
+  pointer-events: none;
+  animation: feedbackButtonOut 0.2s ease forwards;
+}
+
+.feedback-toast {
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 78%;
+  text-align: center;
+  line-height: 1.25;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  white-space: normal;
+  opacity: 0;
+  transform: translateY(4px);
+  animation:
+    feedbackFadeIn  0.34s ease-out 0s    forwards,
+    feedbackFadeOut 0.36s ease-in  2.32s forwards;
+}

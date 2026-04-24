@@ -1,0 +1,166 @@
+/* =====================================================================
+   Layout: TitleBar · Screen Container · Screen Transitions · Theme Reveal
+   ===================================================================== */
+
+/* --- TitleBar --- */
+.titlebar {
+  height: 32px;
+  background: transparent;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  user-select: none;
+  z-index: 100;
+  -webkit-app-region: drag;
+}
+
+.titlebar-drag-region {
+  flex-grow: 1;
+  height: 100%;
+  background: transparent;
+}
+
+.titlebar-controls {
+  display: flex;
+  position: relative;
+}
+
+/* Full-width background backing for window controls strip */
+.titlebar-controls::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -1000px;
+  right: 0;
+  height: 32px;
+  background: var(--bg-color);
+  z-index: -1;
+}
+
+.titlebar-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 42px;
+  height: 32px;
+  cursor: pointer;
+  color: var(--titlebar-color);
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  -webkit-app-region: no-drag;
+  will-change: transform, color;
+  transition:
+    color     0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.titlebar-button:hover {
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.titlebar-button#titlebar-close:hover {
+  color: var(--error-color);
+}
+
+/* --- Screen container --- */
+.screen-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex-grow: 1;
+}
+
+.main-screen-content,
+.settings-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  transition:
+    opacity   0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    filter    0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-screen-content {
+  padding: 52px 15px 40px;
+  z-index: 40;
+}
+
+.settings-screen {
+  padding: 32px 0 0;
+  z-index: 50;
+  background-color: var(--bg-color);
+  overflow-y: auto;
+  scrollbar-width: none;
+  /* Soft bottom fade so content doesn't hard-clip at the edge */
+  mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 36px), transparent 100%);
+}
+
+.settings-screen::-webkit-scrollbar {
+  display: none;
+}
+
+/* Screen visibility states */
+.show-main .main-screen-content {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
+  pointer-events: auto;
+  z-index: 60;
+}
+
+.show-settings .main-screen-content {
+  opacity: 0;
+  transform: scale(0.96);
+  filter: blur(4px);
+  pointer-events: none;
+  z-index: 40;
+}
+
+.show-settings .settings-screen {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.show-main .settings-screen {
+  opacity: 0;
+  transform: translateY(15px);
+  pointer-events: none;
+}
+
+/* --- Theme reveal overlay --- */
+.theme-reveal-overlay {
+  position: absolute;
+  inset: -1px;
+  z-index: 999;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+  transform: translateZ(0);
+  transition: opacity 0.4s ease-out;
+}
+
+.theme-reveal-overlay.fade-out {
+  opacity: 0;
+}
+
+.theme-reveal-circle {
+  position: absolute;
+  width: 200vmax;
+  height: 200vmax;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  z-index: 999;
+}
+
+.theme-reveal-circle.animate {
+  animation: circularReveal 0.55s cubic-bezier(0.2, 0, 0.2, 1) forwards;
+}

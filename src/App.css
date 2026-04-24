@@ -141,12 +141,19 @@ html, body, #root {
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity, transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 .main-screen-content {
     padding: 52px 15px 40px 15px;
     z-index: 40;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                filter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .settings-screen {
@@ -258,28 +265,18 @@ html, body, #root {
     color: var(--text-secondary); 
     font-size: 13px;
     margin: 0;
-    transition: color 0.3s ease;
+    transition: color 0.24s ease, opacity 0.24s ease;
     font-weight: 300;
     pointer-events: none;
-    opacity: 0.8;
-    animation: statusTextFade 0.24s ease-out;
-    will-change: opacity, filter;
+    opacity: 0.78;
+    will-change: opacity;
 }
 
 .app-window.active .status-text {
     color: var(--text-primary);
+    opacity: 0.88;
 }
 
-@keyframes statusTextFade {
-    from {
-        opacity: 0;
-        filter: blur(1.2px);
-    }
-    to {
-        opacity: 0.8;
-        filter: blur(0);
-    }
-}
 
 /* --- 5. Component: Power Button & Settings Gear --- */
 .power-button-container {
@@ -467,15 +464,13 @@ html, body, #root {
     max-height: 180px;
     overflow-y: auto;
     background-color: rgba(49, 51, 56, 0.90);
-    backdrop-filter: blur(10px);
     border-radius: 12px;
     padding: 6px;
     opacity: 0;
-    transform: translateY(10px) scale(0.985);
+    transform: translateY(10px);
     pointer-events: none;
     transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-                transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-                backdrop-filter 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+                transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
     scrollbar-width: none;
     will-change: opacity, transform;
@@ -488,17 +483,22 @@ html, body, #root {
 
 .strategy-dropdown.open {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
     pointer-events: auto;
 }
 
 .strategy-option {
     padding: 10px 12px;
     border-radius: 10px;
+    box-sizing: border-box;
     color: var(--text-secondary);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
     transition: background-color 0.16s ease, color 0.16s ease;
 }
 
@@ -521,12 +521,33 @@ html, body, #root {
     color: var(--accent-color);
 }
 
+.strategy-option.excluded {
+    opacity: 0.45;
+}
+
+.strategy-option.cached:not(.active):not(.excluded) {
+    background: rgba(255, 255, 255, 0.018);
+    color: var(--text-secondary);
+}
+
+.strategy-option.cached.active {
+    outline: none;
+}
+
 .theme-light .strategy-option.active {
     background-color: rgba(255, 0, 0, 0.1);
 }
 
 .theme-light .strategy-option.active:hover {
     background-color: rgba(255, 0, 0, 0.14);
+}
+
+.theme-light .strategy-option.cached:not(.active):not(.excluded) {
+    background: rgba(0, 0, 0, 0.025);
+}
+
+.theme-light .strategy-option.cached.active {
+    outline: none;
 }
 
 /* --- 7. Component: Settings Screen --- */
@@ -536,6 +557,11 @@ html, body, #root {
     margin-bottom: 12px;
     padding: 0 16px 0 24px;
     pointer-events: none;
+    position: sticky;
+    top: 0;
+    z-index: 1003;
+    background: var(--bg-color);
+    transition: filter 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .settings-header-left {
@@ -694,6 +720,17 @@ html, body, #root {
     margin-right: 16px;
 }
 
+.settings-item-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.clear-cache-item .info-icon {
+    padding: 0;
+    margin-left: 0;
+}
+
 /* Tooltips */
 .tooltip-container {
     position: relative;
@@ -709,16 +746,38 @@ html, body, #root {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: transparent;
+    background: rgba(16, 18, 24, 0.22);
+    opacity: 0;
     z-index: 1000;
     cursor: default;
+    pointer-events: none;
+    transition:
+        opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tooltip-backdrop.is-open {
+    opacity: 1;
     pointer-events: auto;
 }
 
-/* Blur non-focused rows when a tooltip is open */
+.theme-light .tooltip-backdrop {
+    background: rgba(228, 233, 239, 0.35);
+}
+
+/* Keep active tooltip row/header sharp and above the dim layer */
+.settings-screen.tooltip-open .tooltip-focus {
+    position: relative;
+    z-index: 1002;
+}
+
+/* Blur everything except the focused tooltip context */
 .settings-screen.tooltip-open .settings-item-wide:not(.tooltip-focus),
-.settings-screen.tooltip-open .settings-group-header:not(.tooltip-focus) {
+.settings-screen.tooltip-open .settings-group-header:not(.tooltip-focus),
+.settings-screen.tooltip-open .collapsible-wrapper:not(.tooltip-focus),
+.settings-screen.tooltip-open .settings-version {
     filter: blur(1.8px);
+    pointer-events: none;
+    user-select: none;
 }
 
 .info-icon {
@@ -744,13 +803,13 @@ html, body, #root {
 }
 
 .tooltip-bubble {
-    --tooltip-bg: var(--dropdown-bg);
+    --tooltip-bg: #313338;
     --tooltip-border: var(--button-bg);
     position: fixed;
     transform: translate(-50%, -100%);
     width: 220px;
     background: var(--tooltip-bg);
-    backdrop-filter: blur(12px);
+    backdrop-filter: none;
     border: 1px solid var(--tooltip-border);
     border-radius: 12px;
     padding: 12px 16px;
@@ -762,7 +821,19 @@ html, body, #root {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
     pointer-events: none;
     text-align: left;
-    z-index: 1001;
+    z-index: 1010;
+}
+
+.tooltip-bubble.tooltip-in-panel {
+    position: absolute;
+}
+
+.tooltip-bubble.tooltip-above {
+    transform: translate(-50%, -100%);
+}
+
+.tooltip-bubble.tooltip-below {
+    transform: translate(-50%, 0);
 }
 
 .tooltip-bubble.theme-light {
@@ -781,13 +852,31 @@ html, body, #root {
 }
 
 @keyframes tooltipFadeIn {
-    from { opacity: 0; transform: translate(-50%, -100%) translateY(8px) scale(0.95); }
-    to { opacity: 1; transform: translate(-50%, -100%) translateY(-10px) scale(1); }
+    from { opacity: 0; transform: translate(-50%, -100%) translateY(8px); }
+    to { opacity: 1; transform: translate(-50%, -100%) translateY(-10px); }
 }
 
 @keyframes tooltipFadeOut {
-    from { opacity: 1; transform: translate(-50%, -100%) translateY(-10px) scale(1); }
-    to { opacity: 0; transform: translate(-50%, -100%) translateY(8px) scale(0.95); }
+    from { opacity: 1; transform: translate(-50%, -100%) translateY(-10px); }
+    to { opacity: 0; transform: translate(-50%, -100%) translateY(8px); }
+}
+
+.tooltip-bubble.tooltip-below.fade-in {
+    animation: tooltipFadeInBelow 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.tooltip-bubble.tooltip-below.fade-out {
+    animation: tooltipFadeOutBelow 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes tooltipFadeInBelow {
+    from { opacity: 0; transform: translate(-50%, 0) translateY(-8px); }
+    to { opacity: 1; transform: translate(-50%, 0) translateY(10px); }
+}
+
+@keyframes tooltipFadeOutBelow {
+    from { opacity: 1; transform: translate(-50%, 0) translateY(10px); }
+    to { opacity: 0; transform: translate(-50%, 0) translateY(-8px); }
 }
 
 .tooltip-arrow {
@@ -803,6 +892,10 @@ html, body, #root {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.tooltip-bubble.tooltip-below .tooltip-arrow {
+    top: 0;
+}
+
 .settings-group-header {
     display: flex;
     justify-content: space-between;
@@ -816,28 +909,17 @@ html, body, #root {
 .settings-group-header.collapsible {
     cursor: pointer;
     user-select: none;
-    transition: opacity 0.2s ease,
-                margin-bottom 0.5s cubic-bezier(0.32, 0.72, 0, 1),
-                filter 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.2s ease, filter 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .settings-group-header.collapsible:hover {
     opacity: 0.8;
 }
 
-.settings-group-header.collapsible:not(.expanded) {
-    margin-bottom: 0;
-}
-
-.settings-group-header.collapsible.expanded {
-    margin-bottom: 14px;
-}
-
 .collapse-chevron {
     color: var(--text-secondary);
     opacity: 0.3;
-    transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
-                opacity 0.3s ease;
+    transition: transform 0.24s ease, opacity 0.2s ease;
 }
 
 .settings-group-header.expanded .collapse-chevron {
@@ -846,21 +928,23 @@ html, body, #root {
 }
 
 .collapsible-wrapper {
-    height: 0;
+    max-height: 0;
     overflow: hidden;
-    transition: height 0.5s cubic-bezier(0.32, 0.72, 0, 1);
-    will-change: height;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: max-height 0.34s cubic-bezier(0.22, 0.61, 0.36, 1),
+                opacity 0.22s ease,
+                transform 0.22s ease,
+                filter 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
 }
 
-/* Guards content against a flash while wrapper height is still animating */
 .collapsible-content {
-    opacity: 0;
-    transition: opacity 0.18s ease;
+    opacity: 1;
 }
 
 .collapsible-wrapper.expanded .collapsible-content {
     opacity: 1;
-    transition: opacity 0.3s ease 0.05s;
 }
 
 .settings-group-title {
@@ -878,17 +962,15 @@ html, body, #root {
     display: flex;
     justify-content: flex-start;
     margin: 0 0 16px 0;
-    opacity: 0;
-    transform: translateY(-4px);
-    transition: opacity 0.22s ease,
-                transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 1;
+    transform: none;
+    transition: none;
 }
 
 .collapsible-wrapper.expanded .settings-group-actions-row {
     opacity: 1;
-    transform: translateY(0);
-    transition: opacity 0.34s cubic-bezier(0.32, 0.72, 0, 1) 0.04s,
-                transform 0.4s cubic-bezier(0.32, 0.72, 0, 1) 0.04s;
+    transform: none;
+    transition: none;
 }
 
 .settings-group-actions {
@@ -936,47 +1018,45 @@ html, body, #root {
 }
 
 .strategy-badge {
-    padding: 12px 8px;
+    padding: 10px 8px;
     border-radius: 12px;
+    box-sizing: border-box;
     font-size: 12px;
     font-weight: 700;
     text-align: center;
     cursor: pointer;
-    white-space: nowrap;
+    min-height: 44px;
+    white-space: normal;
     overflow: hidden;
-    text-overflow: ellipsis;
-    opacity: 0;
-    transform: translateY(5px) scale(0.985);
+    text-overflow: clip;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     transition:
         background 0.2s cubic-bezier(0.4, 0, 0.2, 1),
         color      0.2s cubic-bezier(0.4, 0, 0.2, 1),
-        filter     0.2s cubic-bezier(0.4, 0, 0.2, 1),
-        opacity    0.22s ease,
-        transform  0.22s cubic-bezier(0.4, 0, 0.2, 1);
+        filter     0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.strategy-badge-label {
+    display: block;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
 }
 
 .collapsible-wrapper.expanded .strategy-badge {
     opacity: 1;
-    transform: translateY(0) scale(1);
-    transition:
-        background 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-        color      0.2s cubic-bezier(0.4, 0, 0.2, 1),
-        filter     0.2s cubic-bezier(0.4, 0, 0.2, 1),
-        opacity    0.36s cubic-bezier(0.32, 0.72, 0, 1),
-        transform  0.44s cubic-bezier(0.32, 0.72, 0, 1);
+    transform: none;
 }
 
-/* Row-by-row stagger (2-column grid → pairs share the same delay) */
-.collapsible-wrapper.expanded .strategy-badge:nth-child(-n+2)                  { transition-delay: 0s, 0s, 0s, 0.06s, 0.06s; }
-.collapsible-wrapper.expanded .strategy-badge:nth-child(n+3):nth-child(-n+4)   { transition-delay: 0s, 0s, 0s, 0.10s, 0.10s; }
-.collapsible-wrapper.expanded .strategy-badge:nth-child(n+5):nth-child(-n+6)   { transition-delay: 0s, 0s, 0s, 0.14s, 0.14s; }
-.collapsible-wrapper.expanded .strategy-badge:nth-child(n+7):nth-child(-n+8)   { transition-delay: 0s, 0s, 0s, 0.18s, 0.18s; }
-.collapsible-wrapper.expanded .strategy-badge:nth-child(n+9):nth-child(-n+10)  { transition-delay: 0s, 0s, 0s, 0.22s, 0.22s; }
-.collapsible-wrapper.expanded .strategy-badge:nth-child(n+11):nth-child(-n+12) { transition-delay: 0s, 0s, 0s, 0.26s, 0.26s; }
-.collapsible-wrapper.expanded .strategy-badge:nth-child(n+13):nth-child(-n+14) { transition-delay: 0s, 0s, 0s, 0.30s, 0.30s; }
-.collapsible-wrapper.expanded .strategy-badge:nth-child(n+15):nth-child(-n+16) { transition-delay: 0s, 0s, 0s, 0.34s, 0.34s; }
-.collapsible-wrapper.expanded .strategy-badge:nth-child(n+17):nth-child(-n+18) { transition-delay: 0s, 0s, 0s, 0.37s, 0.37s; }
-.collapsible-wrapper.expanded .strategy-badge:nth-child(n+19)                  { transition-delay: 0s, 0s, 0s, 0.40s, 0.40s; }
+.collapsible-wrapper.expanded {
+    max-height: 760px;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
 
 .strategy-badge.active {
     background: var(--accent-color-alpha);
@@ -986,7 +1066,12 @@ html, body, #root {
 .strategy-badge.excluded {
     background: var(--button-bg);
     color: var(--text-secondary);
-    opacity: 0.4;
+    opacity: 0.28;
+}
+
+.strategy-badge.cached:not(.excluded) {
+    box-shadow: none;
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .strategy-badge:hover {
@@ -1004,6 +1089,26 @@ html, body, #root {
 
 .theme-light .strategy-badge.active:hover {
     filter: brightness(1.14);
+}
+
+.theme-light .strategy-badge.cached:not(.excluded) {
+    background: rgba(0, 0, 0, 0.02);
+    box-shadow: none;
+}
+
+.strategy-state-info {
+    border: none;
+    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
+    margin-left: 0;
+    padding: 2px;
+    opacity: 0.45;
+}
+
+.strategy-state-info svg {
+    width: 14px;
+    height: 14px;
 }
 
 /* Toggle Switch */

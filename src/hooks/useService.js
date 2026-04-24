@@ -57,6 +57,10 @@ export function useService() {
   }, [isActive]);
 
   const toggleService = useCallback(async () => {
+    if (processState.isExiting) {
+      return;
+    }
+
     if (processState.isLoading) {
       await abortDiscovery();
       finalizeProcess();
@@ -67,7 +71,7 @@ export function useService() {
       setIsActive(false);
       setIsAutoConnected(false);
       setForceDiscoveryUI(false);
-      setProcessState({ isLoading: true, isExiting: true });
+      setProcessState({ isLoading: false, isExiting: true });
       setStatus(APP_STATUS.READY());
       try {
         await invoke("stop_service");
@@ -107,7 +111,7 @@ export function useService() {
     } finally {
       setProcessState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [isActive, processState.isLoading, settings, activeStrategyLabel, finalizeProcess, startDiscovery, abortDiscovery]);
+  }, [isActive, processState.isLoading, processState.isExiting, settings, activeStrategyLabel, finalizeProcess, startDiscovery, abortDiscovery]);
 
   // Called from the "Плохо работает?" button — excludes the current strategy and restarts discovery.
   const reportBadStrategy = useCallback(async (strategyValue) => {

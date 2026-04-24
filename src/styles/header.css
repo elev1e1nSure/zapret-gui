@@ -1,0 +1,76 @@
+/* =====================================================================
+   Component: Status Header (App title + connection status)
+   ===================================================================== */
+
+.header {
+  text-align: center;
+  width: 100%;
+  margin-top: 0;
+  -webkit-app-region: drag;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.header-link {
+  text-decoration: none;
+  -webkit-app-region: no-drag;
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+}
+
+.header h1 {
+  color: #ffffff;
+  font-size: 34px;
+  margin: 0 0 2px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  pointer-events: none;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Subtle underline reveal on hover */
+.header-link::after {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 3px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.35);
+  transform: scaleX(0);
+  transform-origin: center;
+  pointer-events: none;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-link:hover::after {
+  transform: scaleX(1);
+}
+
+.theme-light .header h1 {
+  color: var(--text-primary);
+}
+
+.theme-light .header-link::after {
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.status-text {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 0;
+  font-weight: 300;
+  pointer-events: none;
+  opacity: 0.8;
+  will-change: opacity, filter;
+  animation: statusTextFade 0.24s ease-out;
+  transition: color 0.3s ease;
+}
+
+.app-window.active .status-text {
+  color: var(--text-primary);
+}

@@ -13,7 +13,6 @@ export function StatusHeader({ status }) {
         className="status-text"
         id="statusText" 
         data-tauri-drag-region
-        key={status}
       >
         {status}
       </p>

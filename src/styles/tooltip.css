@@ -1,0 +1,146 @@
+/* =====================================================================
+   Tooltip Bubble · Info Icon · Blur System
+   ===================================================================== */
+
+/* --- Info icon (ⓘ button) --- */
+.tooltip-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  z-index: 100;
+}
+
+.info-icon {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  opacity: 0.45;
+  cursor: pointer;
+  display: flex;
+  padding: 8px;
+  margin-left: -8px;
+  position: relative;
+  transition:
+    opacity 0.2s ease,
+    color   0.2s ease;
+}
+
+.info-icon:hover {
+  opacity: 0.8;
+  color: var(--text-primary);
+}
+
+.info-icon.active {
+  opacity: 1;
+  color: var(--text-primary);
+  z-index: 1002;
+}
+
+/* --- Invisible backdrop — hit-target for click-to-close --- */
+.tooltip-backdrop {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 1000;
+  cursor: default;
+  pointer-events: auto;
+}
+
+/* --- Tooltip bubble --- */
+.tooltip-bubble {
+  --tooltip-bg:     var(--dropdown-bg);
+  --tooltip-border: var(--button-bg);
+
+  position: fixed;
+  transform: translate(-50%, -100%);
+  width: 220px;
+  background: var(--tooltip-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--tooltip-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: pre-line;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  text-align: left;
+  z-index: 1001;
+}
+
+.tooltip-bubble.theme-light {
+  --tooltip-bg:     rgb(236, 238, 241);
+  --tooltip-border: rgba(62, 70, 82, 0.12);
+  backdrop-filter: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.11);
+}
+
+.tooltip-bubble.fade-in {
+  animation: tooltipFadeIn 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.tooltip-bubble.fade-out {
+  animation: tooltipFadeOut 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Tooltip arrow */
+.tooltip-arrow {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: var(--tooltip-bg);
+  border-right: 1px solid var(--tooltip-border);
+  border-bottom: 1px solid var(--tooltip-border);
+  z-index: -1;
+}
+
+/* =====================================================================
+   Blur System
+
+   Architecture:
+   ─ Every blurable element already has `filter 0.28s` in its own
+     transition rule (see settings.css, lists.css).
+   ─ When a tooltip opens, `.settings-screen.tooltip-open` is set.
+   ─ Non-focused blurable elements receive `filter: blur(1.8px)`.
+   ─ Elements with `.tooltip-focus` stay sharp and are elevated via
+     `position: relative; z-index: 10` so they visually float above
+     the blurred layer.
+
+   Why we do NOT blur `.category-collapsible-wrapper`:
+   ─ CSS filter on a parent applies to the entire subtree — children
+     cannot be "un-blurred". Since individual items inside a category
+     manage their own blur, we must never blur the wrapper itself.
+   ===================================================================== */
+
+/* Elevate focused element so it's visually above blurred siblings */
+.settings-screen.tooltip-open .tooltip-focus {
+  position: relative;
+  z-index: 10;
+}
+
+/*
+  Blur targets when any tooltip is open.
+
+  Rules:
+  – Target leaf-level elements only, never their wrapper containers.
+    If both a parent and child are blurred, CSS compounds the filters
+    (blur stacks), producing a stronger-than-intended effect.
+  – Each element listed here has `filter 0.28s` in its own transition
+    so the blur animates in both directions at the same speed.
+  – .settings-item-wide covers theme-toggle and footer buttons too,
+    so those wrapper divs don't need to be listed separately.
+*/
+.settings-screen.tooltip-open .settings-category-header:not(.tooltip-focus),
+.settings-screen.tooltip-open .zn-row:not(.tooltip-focus),
+.settings-screen.tooltip-open .zn-subsection-head:not(.tooltip-focus),
+.settings-screen.tooltip-open .zn-control-block:not(.tooltip-focus),
+.settings-screen.tooltip-open .zn-hint,
+.settings-screen.tooltip-open .settings-version {
+  filter: blur(1.8px);
+  pointer-events: none;
+  user-select: none;
+}

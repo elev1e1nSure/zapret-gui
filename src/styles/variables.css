@@ -1,0 +1,42 @@
+/* =====================================================================
+   Design Tokens & Themes
+   ===================================================================== */
+
+:root {
+  font-family: 'Montserrat', sans-serif;
+  background: transparent !important;
+
+  /* Dark theme (default) */
+  --bg-color:           #2b2d31;
+  --accent-color:       #5865f2;
+  --accent-color-alpha: rgba(88, 101, 242, 0.4);
+  --accent-hover:       #616df4;
+  --button-bg:          #404249;
+  --button-hover:       #46484f;
+  --text-primary:       #f2f3f5;
+  --text-secondary:     #b5bac1;
+  --strategy-bg:        #313338;
+  --strategy-hover:     #383a40;
+  --dropdown-bg:        rgba(49, 51, 56, 0.95);
+  --titlebar-color:     #b5bac1;
+  --border-color:       #2b2d31;
+  --error-color:        #ed4245;
+  --divider-color:      rgba(255, 255, 255, 0.05);
+}
+
+.theme-light {
+  --bg-color:           #eef1f4;
+  --accent-color:       #5865f2;
+  --accent-color-alpha: rgba(88, 101, 242, 0.22);
+  --accent-hover:       #616df4;
+  --button-bg:          #d4d8de;
+  --button-hover:       #c8cdd5;
+  --text-primary:       #313843;
+  --text-secondary:     #616975;
+  --strategy-bg:        #d9dde3;
+  --strategy-hover:     #ced3db;
+  --dropdown-bg:        rgba(224, 229, 236, 0.98);
+  --titlebar-color:     #626b76;
+  --border-color:       #eef1f4;
+  --divider-color:      rgba(23, 31, 44, 0.05);
+}

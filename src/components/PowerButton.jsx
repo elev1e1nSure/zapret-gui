@@ -28,7 +28,7 @@ export function PowerButton({ isActive, isLoading, showLoadingUI, isExiting, isD
         </button>
         
         <div 
-          className={`settings-button ${(isActive || isLoading || isExiting || isDropdownOpen) ? "hidden" : ""}`} 
+          className={`settings-button ${(isActive || isLoading || isDropdownOpen) ? "hidden" : ""}`} 
           onClick={onSettingsClick}
         >
           <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor">
