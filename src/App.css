@@ -618,10 +618,14 @@ html, body, #root {
 }
 
 .clear-cache-item {
-    margin-top: 14px;
     box-shadow: none;
     transition: background-color 0.36s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.36s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow 0.36s cubic-bezier(0.4, 0, 0.2, 1),
+                filter 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.clear-cache-item-top {
+    margin-top: 14px;
 }
 
 .clear-cache-item .settings-item-label {
@@ -649,6 +653,7 @@ html, body, #root {
 .clear-cache-item .settings-item-label.fade {
     opacity: 0;
 }
+
 
 .settings-version {
     text-align: center;

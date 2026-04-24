@@ -195,6 +195,7 @@ export function useService() {
     excludedStrategies: settings.excludedStrategies,
     toggleExcludedStrategy: settings.toggleExcludedStrategy,
     clearStrategyCache,
+    resetAppData: settings.resetAppData,
     currentScreen,
     setCurrentScreen,
   };

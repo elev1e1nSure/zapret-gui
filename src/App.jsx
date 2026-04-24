@@ -39,6 +39,7 @@ function App() {
     excludedStrategies,
     toggleExcludedStrategy,
     clearStrategyCache,
+    resetAppData,
     currentScreen,
     setCurrentScreen,
   } = useService();
@@ -207,6 +208,7 @@ function App() {
           excludedStrategies={excludedStrategies}
           onToggleExcluded={toggleExcludedStrategy}
           onClearCache={clearStrategyCache}
+          onResetAppData={resetAppData}
         />
       </div>
 

@@ -93,6 +93,39 @@ export function useSettings() {
     );
   }, [setExcludedStrategies]);
 
+  const resetAppData = useCallback(async () => {
+    try {
+      await invoke("set_autostart", { enable: false });
+      setIsAutostart(false);
+    } catch (error) {
+      console.error("[Settings] Failed to disable autostart during reset:", error);
+    }
+
+    try {
+      Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+    } catch (error) {
+      console.error("[Settings] Failed to clear local storage during reset:", error);
+      return false;
+    }
+
+    // Restore explicit defaults used across the app.
+    setSelectedStrategy("auto");
+    setTheme("dark");
+    setIsAutoConnect(false);
+    setIsMinimizeToTray(true);
+    setExcludedStrategies([]);
+    setIsGameFilter(false);
+
+    return true;
+  }, [
+    setExcludedStrategies,
+    setIsAutoConnect,
+    setIsGameFilter,
+    setIsMinimizeToTray,
+    setSelectedStrategy,
+    setTheme,
+  ]);
+
   // Stable identity — avoids cascading recomputations in consuming hooks.
   return useMemo(() => ({
     selectedStrategy,
@@ -109,6 +142,7 @@ export function useSettings() {
     toggleAutostart,
     isGameFilter,
     toggleGameFilter,
+    resetAppData,
   }), [
     selectedStrategy, setSelectedStrategy,
     excludedStrategies, toggleExcludedStrategy,
@@ -117,5 +151,6 @@ export function useSettings() {
     isMinimizeToTray, toggleMinimizeToTray,
     isAutostart, toggleAutostart,
     isGameFilter, toggleGameFilter,
+    resetAppData,
   ]);
 }

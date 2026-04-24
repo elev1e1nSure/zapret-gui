@@ -127,7 +127,8 @@ export function SettingsScreen({
   onGameFilterToggle,
   excludedStrategies,
   onToggleExcluded,
-  onClearCache
+  onClearCache,
+  onResetAppData
 }) {
   const [isStrategiesExpanded, setIsStrategiesExpanded] = useState(false);
   const [openTooltipId, setOpenTooltipId] = useState(null);
@@ -135,6 +136,10 @@ export function SettingsScreen({
   const [clearCacheState, setClearCacheState] = useState("idle"); // idle | success | error
   const [isClearCacheLabelFading, setIsClearCacheLabelFading] = useState(false);
   const clearCacheTimerRef = useRef(null);
+  const [resetAppDataLabel, setResetAppDataLabel] = useState("Сбросить настройки");
+  const [resetAppDataState, setResetAppDataState] = useState("idle"); // idle | success | error
+  const [isResetAppDataLabelFading, setIsResetAppDataLabelFading] = useState(false);
+  const resetAppDataTimerRef = useRef(null);
   const exclusionsWrapperRef = useRef(null);
   const exclusionsContentRef = useRef(null);
   const allStrategies = STRATEGIES.filter(s => s.value !== "auto");
@@ -221,10 +226,47 @@ export function SettingsScreen({
     }, 1600);
   };
 
+  const setResetAppDataLabelAnimated = (nextLabel) => {
+    setIsResetAppDataLabelFading(true);
+    setTimeout(() => {
+      setResetAppDataLabel(nextLabel);
+      setIsResetAppDataLabelFading(false);
+    }, 110);
+  };
+
+  const handleResetAppData = async (e) => {
+    e.stopPropagation();
+
+    try {
+      const ok = await onResetAppData?.();
+      if (ok === false) {
+        throw new Error("reset-app-data-failed");
+      }
+
+      setResetAppDataState("success");
+      setResetAppDataLabelAnimated("Настройки сброшены");
+    } catch {
+      setResetAppDataState("error");
+      setResetAppDataLabelAnimated("Не удалось");
+    }
+
+    if (resetAppDataTimerRef.current) {
+      clearTimeout(resetAppDataTimerRef.current);
+    }
+    resetAppDataTimerRef.current = setTimeout(() => {
+      setResetAppDataState("idle");
+      setResetAppDataLabelAnimated("Сбросить настройки");
+      resetAppDataTimerRef.current = null;
+    }, 1800);
+  };
+
   useEffect(() => {
     return () => {
       if (clearCacheTimerRef.current) {
         clearTimeout(clearCacheTimerRef.current);
+      }
+      if (resetAppDataTimerRef.current) {
+        clearTimeout(resetAppDataTimerRef.current);
       }
     };
   }, []);
@@ -370,11 +412,19 @@ export function SettingsScreen({
 
         <div className="settings-group">
           <div
-            className={`settings-item-wide clear-cache-item ${clearCacheState}`}
+            className={`settings-item-wide clear-cache-item clear-cache-item-top ${clearCacheState}`}
             onClick={handleClearCache}
           >
             <span className={`settings-item-label centered ${isClearCacheLabelFading ? "fade" : ""}`}>
               {clearCacheLabel}
+            </span>
+          </div>
+          <div
+            className={`settings-item-wide clear-cache-item ${resetAppDataState}`}
+            onClick={handleResetAppData}
+          >
+            <span className={`settings-item-label centered ${isResetAppDataLabelFading ? "fade" : ""}`}>
+              {resetAppDataLabel}
             </span>
           </div>
         </div>
