@@ -2,7 +2,7 @@
   "name": "zapret-app",
   "private": true,
   "license": "MIT",
-  "version": "1.4.0",
+  "version": "1.4.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
