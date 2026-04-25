@@ -45,9 +45,9 @@ jobs:
           draft: true        # publish manually after uploading assets
           prerelease: ${{ contains(github.ref_name, '-') }}
 
-  # ── 2. Build Windows installer ───────────────────────────────────────────
+  # ── 2. Build Windows portable binary ─────────────────────────────────────
   build-windows:
-    name: Build Windows installer
+    name: Build Windows portable
     runs-on: windows-latest
     needs: release-notes
 
@@ -77,11 +77,9 @@ jobs:
       - name: Build Tauri application
         run: pnpm tauri build
 
-      - name: Upload MSI installer
+      - name: Upload portable EXE
         uses: softprops/action-gh-release@v2
         with:
           draft: true
           files: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/release/zapret-gui.exe
