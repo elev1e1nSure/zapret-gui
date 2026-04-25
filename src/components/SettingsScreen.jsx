@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { STRATEGIES, TOOLTIPS, APP_VERSION } from "../config";
-import { getLastWorkingStrategy } from "../utils/strategyCache";
 
 function smoothScrollBy(panel, delta, durationMs = 840) {
   if (!panel || Math.abs(delta) < 1) return () => {};
@@ -71,16 +70,6 @@ function TooltipIcon({ id, text, openId, setOpenId, theme }) {
       if (clampedCenter - tooltipWidth / 2 < padding) {
         clampedCenter = padding + tooltipWidth / 2;
       }
-
-      const textLines = text.split("\n");
-      const estimatedWrappedLines = textLines.reduce(
-        (sum, line) => sum + Math.max(1, Math.ceil(line.length / 28)),
-        0,
-      );
-      const estimatedTooltipHeight = Math.min(320, 64 + estimatedWrappedLines * 18);
-      const header = panel.querySelector(".settings-header");
-      const headerBottomViewport = header?.getBoundingClientRect().bottom ?? panelRect.top;
-      const availableAbove = rect.top - (headerBottomViewport + 8);
 
       const iconTopInPanel = rect.top - panelRect.top + panel.scrollTop;
       const top = iconTopInPanel - 22;
@@ -183,7 +172,6 @@ function TooltipIcon({ id, text, openId, setOpenId, theme }) {
 
 export function SettingsScreen({ 
   onBack, 
-  selectedStrategy,
   onThemeToggle, 
   theme, 
   isAutostart, 
@@ -210,7 +198,6 @@ export function SettingsScreen({
   const [isResetAppDataLabelFading, setIsResetAppDataLabelFading] = useState(false);
   const resetAppDataTimerRef = useRef(null);
   const allStrategies = STRATEGIES.filter(s => s.value !== "auto");
-  const cachedStrategy = getLastWorkingStrategy();
   
   // Prevent scrolling while a tooltip is open (backdrop active)
   useEffect(() => {
@@ -431,9 +418,6 @@ export function SettingsScreen({
           onClick={() => {
             const nextExpanded = !isStrategiesExpanded;
             setIsStrategiesExpanded(nextExpanded);
-            if (!nextExpanded) {
-              setOpenStateHintId(null);
-            }
           }}
         >
           <div className="settings-item-left">
@@ -464,14 +448,12 @@ export function SettingsScreen({
             </div>
             <div className="strategies-grid">
               {allStrategies.map(strategy => {
-                const isSelected = selectedStrategy === strategy.value;
                 const isExcluded = excludedStrategies.includes(strategy.value);
-                const isCached = cachedStrategy === strategy.value;
 
                 return (
                   <div 
                     key={strategy.value} 
-                    className={`strategy-badge ${(!isSelected && isExcluded) ? "excluded" : "active"} ${(!isSelected && isCached) ? "cached" : ""}`}
+                    className={`strategy-badge ${isExcluded ? "excluded" : "active"}`}
                     onClick={() => {
                       onToggleExcluded(strategy.value);
                     }}

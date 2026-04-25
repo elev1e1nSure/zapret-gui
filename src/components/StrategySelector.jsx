@@ -82,7 +82,6 @@ export function StrategySelector({
   setSelectedStrategy, 
   isActive, 
   isLoading,
-  isExiting,
   isDropdownOpen,
   setIsDropdownOpen,
   excludedStrategies = [],
@@ -159,7 +158,7 @@ export function StrategySelector({
           return (
             <div 
               key={strategy.value}
-              className={`strategy-option ${isSelected ? "active" : ""} ${!isSelected && isExcluded ? "excluded" : ""} ${!isSelected && isCached ? "cached" : ""}`}
+              className={`strategy-option ${isSelected ? "active" : ""}`}
               onClick={() => selectStrategy(strategy.value)}
             >
               <span>{strategy.label}</span>

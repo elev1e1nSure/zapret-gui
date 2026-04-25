@@ -196,7 +196,6 @@ function App() {
 
         <SettingsScreen
           onBack={handleCloseSettings}
-          selectedStrategy={selectedStrategy}
           theme={theme}
           onThemeToggle={handleThemeToggle}
           isAutostart={isAutostart}
