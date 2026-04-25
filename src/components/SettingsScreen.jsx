@@ -1,69 +1,48 @@
-import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { STRATEGIES, TOOLTIPS, APP_VERSION } from "../config";
 
-function smoothScrollBy(panel, delta, durationMs = 840) {
-  if (!panel || Math.abs(delta) < 1) return () => {};
-
-  const startTop = panel.scrollTop;
-  const targetTop = startTop + delta;
-  const start = performance.now();
-  let rafId = null;
-
-  // Gentle ease-out with reduced "inertia" feel.
-  const easeOutQuad = (t) => 1 - (1 - t) * (1 - t);
-
-  const tick = (now) => {
-    const elapsed = now - start;
-    const progress = Math.min(1, elapsed / durationMs);
-    const eased = easeOutQuad(progress);
-    panel.scrollTop = startTop + (targetTop - startTop) * eased;
-
-    if (progress < 1) {
-      rafId = requestAnimationFrame(tick);
-    }
-  };
-
-  // Start immediately to remove perceived initial lag.
-  tick(start);
-  if (Math.abs(panel.scrollTop - targetTop) > 0.5) {
-    rafId = requestAnimationFrame(tick);
-  }
-  return () => {
-    if (rafId !== null) cancelAnimationFrame(rafId);
-  };
-}
-
-function TooltipIcon({ id, text, openId, setOpenId, theme }) {
+function TooltipAnchor({
+  id,
+  text,
+  openId,
+  setOpenId,
+  theme,
+  hoverDelay = 360,
+  tooltipOffsetY = -22,
+  className = "",
+  onClick,
+  children,
+}) {
   const isVisible = openId === id;
   const [shouldRender, setShouldRender] = useState(false);
-  const iconRef = useRef(null);
+  const anchorRef = useRef(null);
   const [portalHost, setPortalHost] = useState(null);
-  const [coords, setCoords] = useState({ top: 0, left: 0, arrowShift: 0, placement: "above" });
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const hoverTimerRef = useRef(null);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!isVisible) {
       const timer = setTimeout(() => setShouldRender(false), 300);
       return () => clearTimeout(timer);
     }
     setShouldRender(true);
 
-    const icon = iconRef.current;
-    if (!icon) return;
+    const anchor = anchorRef.current;
+    if (!anchor) return;
 
-    const panel = icon.closest(".settings-screen");
+    const panel = anchor.closest(".settings-screen");
     if (!panel) return;
     setPortalHost(panel);
 
     const computePosition = () => {
-      if (!iconRef.current || !panel) return;
-      const rect = iconRef.current.getBoundingClientRect();
+      if (!anchorRef.current || !panel) return;
+      const rect = anchorRef.current.getBoundingClientRect();
       const tooltipWidth = 220;
       const panelRect = panel.getBoundingClientRect();
-      const padding = 40;
-      const centerBias = -14;
-      const iconCenterInPanel = rect.left - panelRect.left + rect.width / 2;
-      let clampedCenter = iconCenterInPanel + centerBias;
+      const padding = 16;
+      const anchorCenterInPanel = rect.left - panelRect.left + rect.width / 2;
+      let clampedCenter = anchorCenterInPanel;
       if (clampedCenter + tooltipWidth / 2 > panel.clientWidth - padding) {
         clampedCenter = panel.clientWidth - padding - tooltipWidth / 2;
       }
@@ -72,92 +51,95 @@ function TooltipIcon({ id, text, openId, setOpenId, theme }) {
       }
 
       const iconTopInPanel = rect.top - panelRect.top + panel.scrollTop;
-      const top = iconTopInPanel - 22;
+      const top = iconTopInPanel + tooltipOffsetY;
 
       setCoords({
         top,
         left: clampedCenter,
-        arrowShift: iconCenterInPanel - clampedCenter,
-        placement: "above",
       });
     };
 
-    let cancelSmoothScroll = null;
-    // Compute position in layout phase to avoid initial jump.
     computePosition();
-
-    // Start auto-scroll immediately when tooltip opens.
-    if (iconRef.current && panel) {
-      const iconRect = iconRef.current.getBoundingClientRect();
-      const panelRect = panel.getBoundingClientRect();
-      const textLines = text.split("\n");
-      const estimatedWrappedLines = textLines.reduce(
-        (sum, line) => sum + Math.max(1, Math.ceil(line.length / 28)),
-        0,
-      );
-      const TOOLTIP_HEIGHT = Math.min(320, 64 + estimatedWrappedLines * 18);
-      const FADE_ZONE = 36;
-      const header = panel.querySelector(".settings-header");
-      const headerBottom = header?.getBoundingClientRect().bottom ?? panelRect.top;
-      const TOP_SAFE = Math.max(panelRect.top + 8, headerBottom + 6);
-
-      const estimatedTooltipTop = iconRect.top - 22 - TOOLTIP_HEIGHT;
-      let scrollDelta = 0;
-
-      if (estimatedTooltipTop < TOP_SAFE) {
-        scrollDelta = estimatedTooltipTop - TOP_SAFE;
-      } else if (iconRect.bottom > panelRect.bottom - FADE_ZONE) {
-        scrollDelta = iconRect.bottom - (panelRect.bottom - FADE_ZONE);
-      }
-
-      if (Math.abs(scrollDelta) > 2) {
-        cancelSmoothScroll = smoothScrollBy(panel, scrollDelta, 420);
-      }
-    }
-    // Re-compute position after scroll animation settles
-    const settleTimer = setTimeout(computePosition, 420);
-
     panel.addEventListener("scroll", computePosition, { passive: true });
     window.addEventListener("resize", computePosition);
 
     return () => {
-      if (cancelSmoothScroll) cancelSmoothScroll();
-      clearTimeout(settleTimer);
       panel.removeEventListener("scroll", computePosition);
       window.removeEventListener("resize", computePosition);
     };
-  }, [isVisible, text]);
+  }, [isVisible, tooltipOffsetY]);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+      }
+    };
+  }, []);
+
+  const openWithDelay = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+    }
+    hoverTimerRef.current = setTimeout(() => {
+      setOpenId(id);
+      hoverTimerRef.current = null;
+    }, hoverDelay);
+  };
+
+  const closeTooltip = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    if (openId === id) {
+      setOpenId(null);
+    }
+  };
 
   const content = (
-    <>
-      <div 
-        className={`tooltip-bubble tooltip-in-panel tooltip-${coords.placement} ${isVisible ? "fade-in" : "fade-out"} ${theme === "light" ? "theme-light" : ""}`}
-        style={{ 
-          top: `${coords.top}px`, 
-          left: `${coords.left}px`,
-          position: "absolute",
-        }}
-      >
-        {text}
-        <div 
-          className="tooltip-arrow" 
-          style={{
-            transform:
-              coords.placement === "below"
-                ? `translate(calc(-50% + ${coords.arrowShift}px), 50%) rotate(225deg)`
-                : `translate(calc(-50% + ${coords.arrowShift}px), -50%) rotate(45deg)`,
-          }}
-        />
-      </div>
-    </>
+    <div
+      className={`tooltip-bubble tooltip-in-panel tooltip-above ${isVisible ? "fade-in" : "fade-out"} ${theme === "light" ? "theme-light" : ""}`}
+      style={{
+        top: `${coords.top}px`,
+        left: `${coords.left}px`,
+        position: "absolute",
+      }}
+    >
+      {text}
+    </div>
   );
 
   return (
-    <div className="tooltip-container" onClick={(e) => e.stopPropagation()}>
-      <div 
-        ref={iconRef}
-        className={`info-icon ${isVisible ? "active" : ""}`}
-        onClick={() => setOpenId(isVisible ? null : id)}
+    <div
+      ref={anchorRef}
+      className={className}
+      onClick={onClick}
+      onMouseEnter={openWithDelay}
+      onMouseLeave={closeTooltip}
+    >
+      {children}
+      {shouldRender && portalHost && createPortal(content, portalHost)}
+    </div>
+  );
+}
+
+function TooltipIcon({ id, text, openId, setOpenId, theme }) {
+  return (
+    <TooltipAnchor
+      id={id}
+      text={text}
+      openId={openId}
+      setOpenId={setOpenId}
+      theme={theme}
+      className="tooltip-container"
+      hoverDelay={360}
+      tooltipOffsetY={-22}
+    >
+      <div
+        className={`info-icon ${openId === id ? "active" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
@@ -165,8 +147,7 @@ function TooltipIcon({ id, text, openId, setOpenId, theme }) {
           <line x1="12" y1="8" x2="12.01" y2="8"></line>
         </svg>
       </div>
-      {shouldRender && portalHost && createPortal(content, portalHost)}
-    </div>
+    </TooltipAnchor>
   );
 }
 
@@ -199,30 +180,6 @@ export function SettingsScreen({
   const resetAppDataTimerRef = useRef(null);
   const allStrategies = STRATEGIES.filter(s => s.value !== "auto");
   
-  // Prevent scrolling while a tooltip is open (backdrop active)
-  useEffect(() => {
-    if (!openTooltipId) return;
-
-    const prevOverflow = document.body.style.overflow;
-    const prevOverscroll = document.body.style.overscrollBehavior;
-    document.body.style.overflow = "hidden";
-    document.body.style.overscrollBehavior = "none";
-
-    const prevent = (e) => {
-      e.preventDefault();
-    };
-
-    window.addEventListener("wheel", prevent, { passive: false });
-    window.addEventListener("touchmove", prevent, { passive: false });
-
-    return () => {
-      window.removeEventListener("wheel", prevent);
-      window.removeEventListener("touchmove", prevent);
-      document.body.style.overflow = prevOverflow;
-      document.body.style.overscrollBehavior = prevOverscroll;
-    };
-  }, [openTooltipId]);
-
   const setClearCacheLabelAnimated = (nextLabel) => {
     setIsClearCacheLabelFading(true);
     setTimeout(() => {
@@ -316,14 +273,7 @@ export function SettingsScreen({
   }, []);
 
   return (
-    <div className={`settings-screen ${openTooltipId ? "tooltip-open" : ""}`}>
-      {createPortal(
-        <div
-          className={`tooltip-backdrop ${openTooltipId ? "is-open" : ""}`}
-          onClick={() => openTooltipId && setOpenTooltipId(null)}
-        />,
-        document.body,
-      )}
+    <div className="settings-screen">
       <div className="settings-header">
         <div className="settings-header-left">
           <button 
@@ -348,7 +298,7 @@ export function SettingsScreen({
             </span>
           </div>
 
-          <div className={`settings-item-wide ${openTooltipId === "autostart" ? "tooltip-focus" : ""}`} onClick={onAutostartToggle}>
+          <div className="settings-item-wide" onClick={onAutostartToggle}>
             <div className="settings-item-left">
               <span className="settings-item-label">Автозагрузка</span>
               <TooltipIcon
@@ -364,7 +314,7 @@ export function SettingsScreen({
             </div>
           </div>
 
-          <div className={`settings-item-wide ${openTooltipId === "autoconnect" ? "tooltip-focus" : ""}`} onClick={onAutoConnectToggle}>
+          <div className="settings-item-wide" onClick={onAutoConnectToggle}>
             <div className="settings-item-left">
               <span className="settings-item-label">Включить при запуске</span>
               <TooltipIcon
@@ -380,7 +330,7 @@ export function SettingsScreen({
             </div>
           </div>
 
-          <div className={`settings-item-wide ${openTooltipId === "minimize" ? "tooltip-focus" : ""}`} onClick={onMinimizeToTrayToggle}>
+          <div className="settings-item-wide" onClick={onMinimizeToTrayToggle}>
             <div className="settings-item-left">
               <span className="settings-item-label">Сворачивать в трей</span>
               <TooltipIcon
@@ -396,7 +346,7 @@ export function SettingsScreen({
             </div>
           </div>
 
-          <div className={`settings-item-wide ${openTooltipId === "gamefilter" ? "tooltip-focus" : ""}`} onClick={onGameFilterToggle}>
+          <div className="settings-item-wide" onClick={onGameFilterToggle}>
             <div className="settings-item-left">
               <span className="settings-item-label">Игровой фильтр</span>
               <TooltipIcon
@@ -413,8 +363,15 @@ export function SettingsScreen({
           </div>
         </div>
 
-        <div 
-          className={`settings-group-header collapsible ${isStrategiesExpanded ? "expanded" : ""} ${openTooltipId === "exclusions" ? "tooltip-focus" : ""}`}
+        <TooltipAnchor
+          id="exclusions"
+          text={TOOLTIPS.DISCOVERY_EXCLUSIONS}
+          openId={openTooltipId}
+          setOpenId={setOpenTooltipId}
+          theme={theme}
+          hoverDelay={680}
+          tooltipOffsetY={-8}
+          className={`settings-group-header collapsible ${isStrategiesExpanded ? "expanded" : ""}`}
           onClick={() => {
             const nextExpanded = !isStrategiesExpanded;
             setIsStrategiesExpanded(nextExpanded);
@@ -422,21 +379,14 @@ export function SettingsScreen({
         >
           <div className="settings-item-left">
             <div className="settings-group-title">Исключения автоподбора</div>
-            <TooltipIcon
-              id="exclusions"
-              text={TOOLTIPS.DISCOVERY_EXCLUSIONS}
-              openId={openTooltipId}
-              setOpenId={setOpenTooltipId}
-              theme={theme}
-            />
           </div>
           <svg className="collapse-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
-        </div>
+        </TooltipAnchor>
 
         <div
-          className={`collapsible-wrapper ${isStrategiesExpanded ? "expanded" : ""} ${openTooltipId === "exclusions" ? "tooltip-focus" : ""}`}
+          className={`collapsible-wrapper ${isStrategiesExpanded ? "expanded" : ""}`}
         >
           <div className="collapsible-content">
             <div className="settings-group-actions-row">
@@ -469,44 +419,40 @@ export function SettingsScreen({
         </div>
 
         <div className="settings-group">
-          <div
-            className={`settings-item-wide clear-cache-item clear-cache-item-top ${clearCacheState} ${openTooltipId === "clear-cache" ? "tooltip-focus" : ""}`}
+          <TooltipAnchor
+            id="clear-cache"
+            text={TOOLTIPS.CLEAR_CACHE}
+            openId={openTooltipId}
+            setOpenId={setOpenTooltipId}
+            theme={theme}
+            hoverDelay={680}
+            tooltipOffsetY={-8}
+            className={`settings-item-wide clear-cache-item clear-cache-item-top ${clearCacheState}`}
             onClick={handleClearCache}
           >
-            <div className="settings-item-left">
+            <div className="settings-item-left settings-item-left-centered">
               <span className={`settings-item-label ${isClearCacheLabelFading ? "fade" : ""}`}>
                 {clearCacheLabel}
               </span>
             </div>
-            <div className="settings-item-right">
-              <TooltipIcon
-                id="clear-cache"
-                text={TOOLTIPS.CLEAR_CACHE}
-                openId={openTooltipId}
-                setOpenId={setOpenTooltipId}
-                theme={theme}
-              />
-            </div>
-          </div>
-          <div
-            className={`settings-item-wide clear-cache-item ${resetAppDataState} ${openTooltipId === "reset-settings" ? "tooltip-focus" : ""}`}
+          </TooltipAnchor>
+          <TooltipAnchor
+            id="reset-settings"
+            text={TOOLTIPS.RESET_SETTINGS}
+            openId={openTooltipId}
+            setOpenId={setOpenTooltipId}
+            theme={theme}
+            hoverDelay={680}
+            tooltipOffsetY={-8}
+            className={`settings-item-wide clear-cache-item ${resetAppDataState}`}
             onClick={handleResetAppData}
           >
-            <div className="settings-item-left">
+            <div className="settings-item-left settings-item-left-centered">
               <span className={`settings-item-label ${isResetAppDataLabelFading ? "fade" : ""}`}>
                 {resetAppDataLabel}
               </span>
             </div>
-            <div className="settings-item-right">
-              <TooltipIcon
-                id="reset-settings"
-                text={TOOLTIPS.RESET_SETTINGS}
-                openId={openTooltipId}
-                setOpenId={setOpenTooltipId}
-                theme={theme}
-              />
-            </div>
-          </div>
+          </TooltipAnchor>
         </div>
 
         <div className="settings-version">v{APP_VERSION}</div>

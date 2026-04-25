@@ -10,12 +10,12 @@ import "./App.css";
 
 const FEEDBACK_DELAY_MS = 3000;
 const FEEDBACK_SWAP_DELAY_MS = 220;
-const TOAST_DURATION_MS = 2800;
+const TOAST_DURATION_MS = 1900;
+const TOAST_FADE_OUT_MS = 260;
 
 function App() {
   const {
     isActive,
-    isAutoConnected,
     reportBadStrategy,
     status,
     isLoading,
@@ -43,6 +43,7 @@ function App() {
     currentScreen,
     setCurrentScreen,
   } = useService();
+  const isSelectedStrategyExcluded = excludedStrategies.includes(selectedStrategy);
 
   const [transitionOverlay, setTransitionOverlay] = useState(null);
   const overlayTimeoutRef = useRef(null);
@@ -52,14 +53,16 @@ function App() {
   const [showFeedbackButton, setShowFeedbackButton] = useState(false);
   const [isFeedbackButtonClosing, setIsFeedbackButtonClosing] = useState(false);
   const [feedbackToast, setFeedbackToast] = useState(false);
+  const [isFeedbackToastClosing, setIsFeedbackToastClosing] = useState(false);
   const feedbackTimerRef = useRef(null);
   const feedbackSwapTimerRef = useRef(null);
   const toastTimerRef = useRef(null);
+  const toastCloseTimerRef = useRef(null);
 
-  // Show the button after a delay when connected via auto-discovery
+  // Show the button after a delay for any active connection.
   useEffect(() => {
     clearTimeout(feedbackTimerRef.current);
-    if (isActive && isAutoConnected && !showLoadingUI) {
+    if (isActive && !showLoadingUI && !isSelectedStrategyExcluded) {
       feedbackTimerRef.current = setTimeout(() => {
         setShowFeedbackButton(true);
       }, FEEDBACK_DELAY_MS);
@@ -67,14 +70,16 @@ function App() {
       setShowFeedbackButton(false);
       setIsFeedbackButtonClosing(false);
       setFeedbackToast(false);
+      setIsFeedbackToastClosing(false);
     }
     return () => clearTimeout(feedbackTimerRef.current);
-  }, [isActive, isAutoConnected, showLoadingUI]);
+  }, [isActive, showLoadingUI, isSelectedStrategyExcluded]);
 
   const handleBadStrategy = useCallback(() => {
     setIsFeedbackButtonClosing(true);
     clearTimeout(feedbackSwapTimerRef.current);
     clearTimeout(toastTimerRef.current);
+    clearTimeout(toastCloseTimerRef.current);
 
     // Start transition to discovery immediately, while the small button finishes its exit animation.
     reportBadStrategy(selectedStrategy);
@@ -83,7 +88,14 @@ function App() {
       setShowFeedbackButton(false);
       setIsFeedbackButtonClosing(false);
       setFeedbackToast(true);
-      toastTimerRef.current = setTimeout(() => setFeedbackToast(false), TOAST_DURATION_MS);
+      setIsFeedbackToastClosing(false);
+      toastTimerRef.current = setTimeout(() => {
+        setIsFeedbackToastClosing(true);
+        toastCloseTimerRef.current = setTimeout(() => {
+          setFeedbackToast(false);
+          setIsFeedbackToastClosing(false);
+        }, TOAST_FADE_OUT_MS);
+      }, TOAST_DURATION_MS);
     }, FEEDBACK_SWAP_DELAY_MS);
   }, [reportBadStrategy, selectedStrategy]);
 
@@ -92,6 +104,7 @@ function App() {
       clearTimeout(feedbackTimerRef.current);
       clearTimeout(feedbackSwapTimerRef.current);
       clearTimeout(toastTimerRef.current);
+      clearTimeout(toastCloseTimerRef.current);
     };
   }, []);
 
@@ -187,7 +200,7 @@ function App() {
               </button>
             )}
             {feedbackToast && (
-              <div className="feedback-toast">
+              <div className={`feedback-toast ${isFeedbackToastClosing ? "closing" : ""}`}>
                 Стратегия исключена,<br />ищем следующую
               </div>
             )}

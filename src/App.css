@@ -162,6 +162,11 @@ html, body, #root {
     background-color: var(--bg-color);
     overflow-y: auto;
     scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to bottom, 
+        black 0%, 
+        black calc(100% - 30px), 
+        transparent 100%
+    );
     mask-image: linear-gradient(to bottom, 
         black 0%, 
         black calc(100% - 30px), 
@@ -526,8 +531,13 @@ html, body, #root {
 }
 
 .strategy-option.cached:not(.active):not(.excluded) {
-    background: rgba(255, 255, 255, 0.018);
-    color: var(--text-secondary);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.strategy-option.cached:not(.active):not(.excluded):hover {
+    background-color: rgba(255, 255, 255, 0.075);
+    color: var(--text-primary);
 }
 
 .strategy-option.cached.active {
@@ -543,7 +553,13 @@ html, body, #root {
 }
 
 .theme-light .strategy-option.cached:not(.active):not(.excluded) {
-    background: rgba(0, 0, 0, 0.025);
+    background: transparent;
+    color: rgba(23, 31, 44, 0.72);
+}
+
+.theme-light .strategy-option.cached:not(.active):not(.excluded):hover {
+    background-color: rgba(0, 0, 0, 0.11);
+    color: var(--text-primary);
 }
 
 .theme-light .strategy-option.cached.active {
@@ -559,7 +575,7 @@ html, body, #root {
     pointer-events: none;
     position: sticky;
     top: 0;
-    z-index: 1003;
+    z-index: 1020;
     background: var(--bg-color);
     transition: filter 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -629,10 +645,6 @@ html, body, #root {
                 filter 0.45s cubic-bezier(0.4, 0, 0.2, 1);
     box-sizing: border-box;
     border: 1px solid transparent;
-}
-
-.tooltip-focus {
-    position: relative;
 }
 
 .settings-item-wide:hover {
@@ -720,15 +732,19 @@ html, body, #root {
     margin-right: 16px;
 }
 
+.settings-item-left.settings-item-left-centered {
+    justify-content: center;
+    margin-right: 0;
+}
+
+.settings-item-left.settings-item-left-centered .settings-item-label {
+    text-align: center;
+}
+
 .settings-item-right {
     display: flex;
     align-items: center;
     flex-shrink: 0;
-}
-
-.clear-cache-item .info-icon {
-    padding: 0;
-    margin-left: 0;
 }
 
 /* Tooltips */
@@ -737,47 +753,6 @@ html, body, #root {
     display: inline-flex;
     align-items: center;
     z-index: 100;
-}
-
-/* Backdrop: click-to-close only, no visual effect — dimming is handled via CSS on siblings */
-.tooltip-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(16, 18, 24, 0.22);
-    opacity: 0;
-    z-index: 1000;
-    cursor: default;
-    pointer-events: none;
-    transition:
-        opacity 0.24s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.tooltip-backdrop.is-open {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.theme-light .tooltip-backdrop {
-    background: rgba(228, 233, 239, 0.35);
-}
-
-/* Keep active tooltip row/header sharp and above the dim layer */
-.settings-screen.tooltip-open .tooltip-focus {
-    position: relative;
-    z-index: 1002;
-}
-
-/* Blur everything except the focused tooltip context */
-.settings-screen.tooltip-open .settings-item-wide:not(.tooltip-focus),
-.settings-screen.tooltip-open .settings-group-header:not(.tooltip-focus),
-.settings-screen.tooltip-open .collapsible-wrapper:not(.tooltip-focus),
-.settings-screen.tooltip-open .settings-version {
-    filter: blur(1.8px);
-    pointer-events: none;
-    user-select: none;
 }
 
 .info-icon {
@@ -792,7 +767,6 @@ html, body, #root {
 }
 
 .info-icon.active {
-    z-index: 1002;
     opacity: 1;
     color: var(--accent-color);
 }
@@ -808,6 +782,7 @@ html, body, #root {
     position: fixed;
     transform: translate(-50%, -100%);
     width: 220px;
+    box-sizing: border-box;
     background: var(--tooltip-bg);
     backdrop-filter: none;
     border: 1px solid var(--tooltip-border);
@@ -821,7 +796,7 @@ html, body, #root {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
     pointer-events: none;
     text-align: left;
-    z-index: 1010;
+    z-index: 1008;
 }
 
 .tooltip-bubble.tooltip-in-panel {
@@ -877,23 +852,6 @@ html, body, #root {
 @keyframes tooltipFadeOutBelow {
     from { opacity: 1; transform: translate(-50%, 0) translateY(10px); }
     to { opacity: 0; transform: translate(-50%, 0) translateY(-8px); }
-}
-
-.tooltip-arrow {
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    width: 10px;
-    height: 10px;
-    background: var(--tooltip-bg);
-    border-right: 1px solid var(--tooltip-border);
-    border-bottom: 1px solid var(--tooltip-border);
-    z-index: -1;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.tooltip-bubble.tooltip-below .tooltip-arrow {
-    top: 0;
 }
 
 .settings-group-header {
@@ -1021,8 +979,8 @@ html, body, #root {
     padding: 10px 8px;
     border-radius: 12px;
     box-sizing: border-box;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 500;
     text-align: center;
     cursor: pointer;
     min-height: 44px;
@@ -1035,8 +993,7 @@ html, body, #root {
     gap: 6px;
     transition:
         background 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-        color      0.2s cubic-bezier(0.4, 0, 0.2, 1),
-        filter     0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        color      0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .strategy-badge-label {
@@ -1044,6 +1001,8 @@ html, body, #root {
     white-space: normal;
     overflow: visible;
     text-overflow: clip;
+    line-height: 1.2;
+    letter-spacing: 0;
 }
 
 .collapsible-wrapper.expanded .strategy-badge {
@@ -1060,13 +1019,13 @@ html, body, #root {
 
 .strategy-badge.active {
     background: var(--accent-color-alpha);
-    color: var(--accent-color);
+    color: #d7e0ff;
 }
 
 .strategy-badge.excluded {
     background: var(--button-bg);
-    color: var(--text-secondary);
-    opacity: 0.28;
+    color: #9aa2b0;
+    opacity: 1;
 }
 
 .strategy-badge.cached:not(.excluded) {
@@ -1075,11 +1034,11 @@ html, body, #root {
 }
 
 .strategy-badge:hover {
-    filter: brightness(1.14);
+    background: var(--strategy-hover);
 }
 
 .strategy-badge.active:hover {
-    filter: brightness(1.14);
+    background: rgba(88, 101, 242, 0.26);
 }
 
 .theme-light .strategy-badge.active {
@@ -1088,7 +1047,7 @@ html, body, #root {
 }
 
 .theme-light .strategy-badge.active:hover {
-    filter: brightness(1.14);
+    background: rgba(255, 0, 0, 0.14);
 }
 
 .theme-light .strategy-badge.cached:not(.excluded) {
@@ -1222,8 +1181,11 @@ html, body, #root {
     white-space: normal;
     opacity: 0;
     transform: translateY(4px);
-    animation: feedbackFadeIn 0.34s ease-out 0s forwards,
-               feedbackFadeOut 0.36s ease-in 2.32s forwards;
+    animation: feedbackFadeIn 0.34s ease-out 0s forwards;
+}
+
+.feedback-toast.closing {
+    animation: feedbackFadeOut 0.26s ease-in forwards;
 }
 
 @keyframes feedbackFadeIn {
