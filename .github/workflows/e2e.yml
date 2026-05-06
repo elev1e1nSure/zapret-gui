@@ -1,10 +1,7 @@
 name: E2E Binary Smoke
 
-# Runs against a real compiled binary — heavier than unit tests, so it runs:
-#   1. Manually (workflow_dispatch) — for developer validation
-#   2. On release tags — as a final gate before the draft release is published
-#
-# NOT run on every push because it requires a full Tauri build (~5–10 min).
+# Runs only when you start it manually (Actions → E2E Binary Smoke → Run workflow).
+# Tag pushes no longer trigger builds — keeps GitHub from touching release flows.
 on:
   workflow_dispatch:
     inputs:
@@ -14,10 +11,6 @@ on:
         default: debug
         type: choice
         options: [debug, release]
-
-  push:
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
 
 concurrency:
   group: e2e-${{ github.ref }}
@@ -54,14 +47,13 @@ jobs:
       - name: Build frontend (Vite)
         run: pnpm build
 
-      # For release tags always build in release mode; for manual runs use the input.
       - name: Build Rust binary (debug)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_mode == 'debug' }}
+        if: ${{ inputs.build_mode == 'debug' }}
         working-directory: src-tauri
         run: cargo build
 
       - name: Build Rust binary (release)
-        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.build_mode == 'release') }}
+        if: ${{ inputs.build_mode == 'release' }}
         working-directory: src-tauri
         run: cargo build --release
 
@@ -69,7 +61,7 @@ jobs:
         id: binary
         shell: pwsh
         run: |
-          if ("${{ github.event_name }}" -eq "push" -or "${{ inputs.build_mode }}" -eq "release") {
+          if ("${{ inputs.build_mode }}" -eq "release") {
             echo "path=src-tauri\target\release\zapret-gui.exe" >> $env:GITHUB_OUTPUT
           } else {
             echo "path=src-tauri\target\debug\zapret-gui.exe" >> $env:GITHUB_OUTPUT

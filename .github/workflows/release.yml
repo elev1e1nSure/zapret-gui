@@ -1,10 +1,9 @@
 name: Release
 
-# Triggered when a version tag is pushed: git tag v1.5.0 && git push origin v1.5.0
+# Automatic releases are disabled — pushing tags no longer creates or updates GitHub Releases.
+# Run this workflow manually from the Actions tab if you ever want the old draft+EXE upload flow.
 on:
-  push:
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
 
 permissions:
   contents: write   # needed to create GitHub Releases and upload assets
