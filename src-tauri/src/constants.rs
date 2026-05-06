@@ -4,6 +4,9 @@ pub static ENGINE_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/engine");
 
 pub const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
+/// Bump whenever `src-tauri/engine` changes so AppData is re-synced from the embedded bundle.
+pub const ENGINE_BUNDLE_STAMP: &str = "2";
+
 pub const REQUIRED_FILES: &[&str] = &[
     "bin/winws.exe",
     "bin/WinDivert.dll",
@@ -28,4 +31,5 @@ pub const REQUIRED_FILES: &[&str] = &[
     "general (SIMPLE FAKE)_silent.bat",
     "general (SIMPLE FAKE ALT)_silent.bat",
     "general (SIMPLE FAKE ALT2)_silent.bat",
+    "service.bat",
 ];

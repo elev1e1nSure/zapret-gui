@@ -61,12 +61,9 @@ export function useService() {
       return;
     }
 
-    if (processState.isLoading) {
-      await abortDiscovery();
-      finalizeProcess();
-      return;
-    }
-
+    // While a manual strategy is starting, both `isLoading` and `isActive` can be true for a
+    // brief window. Prefer STOP over "abort discovery" so we never leave `isActive` stuck on
+    // with a READY status (abort path does not clear `isActive`).
     if (isActive) {
       setIsActive(false);
       setIsAutoConnected(false);
@@ -80,6 +77,12 @@ export function useService() {
         setStatus(APP_STATUS.ERROR(humanizeError(error)));
         setProcessState({ isLoading: false, isExiting: false });
       }
+      return;
+    }
+
+    if (processState.isLoading) {
+      await abortDiscovery();
+      finalizeProcess();
       return;
     }
 

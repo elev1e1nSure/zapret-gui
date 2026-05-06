@@ -1,6 +1,6 @@
 [package]
 name = "zapret-gui"
-version = "1.4.5"
+version = "1.5.0"
 description = "GUI wrapper for zapret-discord-youtube — simple one-click DPI bypass for Windows"
 authors = ["elev1e1nSure"]
 edition = "2021"

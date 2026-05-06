@@ -13,7 +13,7 @@ if "%~1"=="check_updates" (
 
     if exist "%~dp0utils\check_updates.enabled" (
         if not "%~2"=="soft" (
-            start /b service check_updates soft
+            start /b cmd /c call "%~f0" check_updates soft
         ) else (
             call :service_check_updates soft
         )
@@ -365,7 +365,6 @@ cls
 :: Set current version and URLs
 set "GITHUB_VERSION_URL=https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/.service/version.txt"
 set "GITHUB_RELEASE_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/tag/"
-set "GITHUB_DOWNLOAD_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/latest"
 
 :: Get the latest version from GitHub
 for /f "delims=" %%A in ('powershell -NoProfile -Command "(Invoke-WebRequest -Uri \"%GITHUB_VERSION_URL%\" -Headers @{\"Cache-Control\"=\"no-cache\"} -UseBasicParsing -TimeoutSec 5).Content.Trim()" 2^>nul') do set "GITHUB_VERSION=%%A"
@@ -389,9 +388,6 @@ if "%LOCAL_VERSION%"=="%GITHUB_VERSION%" (
 
 echo New version available: %GITHUB_VERSION%
 echo Release page: %GITHUB_RELEASE_URL%%GITHUB_VERSION%
-
-echo Opening the download page...
-start "" "%GITHUB_DOWNLOAD_URL%"
 
 
 if "%1"=="soft" exit 

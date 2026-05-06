@@ -1,9 +1,5 @@
-use std::os::windows::process::CommandExt;
-use std::process::Command;
-use std::process::Stdio;
-
 use crate::app_error::{AppError, AppResult};
-use crate::constants::CREATE_NO_WINDOW;
+use crate::sys_utils::hidden_command;
 
 pub fn set_enabled(enable: bool) -> AppResult<()> {
     let exe_path = std::env::current_exe()
@@ -12,7 +8,7 @@ pub fn set_enabled(enable: bool) -> AppResult<()> {
         .to_string();
 
     if enable {
-        let _ = Command::new("reg")
+        let _ = hidden_command("reg")
             .args([
                 "delete",
                 "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
@@ -20,12 +16,9 @@ pub fn set_enabled(enable: bool) -> AppResult<()> {
                 "ZapretGUI",
                 "/f",
             ])
-            .creation_flags(CREATE_NO_WINDOW)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
             .status();
 
-        let status = Command::new("schtasks")
+        let status = hidden_command("schtasks")
             .args([
                 "/create",
                 "/tn",
@@ -38,9 +31,6 @@ pub fn set_enabled(enable: bool) -> AppResult<()> {
                 "highest",
                 "/f",
             ])
-            .creation_flags(CREATE_NO_WINDOW)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
             .status()
             .map_err(|e| AppError::Process(e.to_string()))?;
 
@@ -51,11 +41,8 @@ pub fn set_enabled(enable: bool) -> AppResult<()> {
             )));
         }
     } else {
-        let status = Command::new("schtasks")
+        let status = hidden_command("schtasks")
             .args(["/delete", "/tn", "ZapretGUI", "/f"])
-            .creation_flags(CREATE_NO_WINDOW)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
             .status()
             .map_err(|e| AppError::Process(e.to_string()))?;
 
@@ -71,11 +58,8 @@ pub fn set_enabled(enable: bool) -> AppResult<()> {
 }
 
 pub fn is_enabled() -> bool {
-    let output = Command::new("schtasks")
+    let output = hidden_command("schtasks")
         .args(["/query", "/tn", "ZapretGUI"])
-        .creation_flags(CREATE_NO_WINDOW)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
         .output();
 
     if let Ok(out) = output {

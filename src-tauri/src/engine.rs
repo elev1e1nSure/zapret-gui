@@ -9,8 +9,14 @@ use tauri::AppHandle;
 use tauri::Manager;
 
 use crate::app_error::{AppError, AppResult};
-use crate::constants::{CREATE_NO_WINDOW, ENGINE_DIR, REQUIRED_FILES};
+use crate::constants::{CREATE_NO_WINDOW, ENGINE_BUNDLE_STAMP, ENGINE_DIR, REQUIRED_FILES};
 use crate::sys_utils;
+
+fn engine_requirements_satisfied(engine_dir: &Path) -> bool {
+    REQUIRED_FILES
+        .iter()
+        .all(|rel| engine_dir.join(rel).exists())
+}
 
 pub(crate) fn is_simple_file_name(file_name: &str) -> bool {
     let mut components = Path::new(file_name).components();
@@ -68,22 +74,56 @@ pub fn extract_engine(handle: &AppHandle) -> AppResult<PathBuf> {
 
     sys_utils::add_to_defender_exclusions(&engine_dir);
 
-    let needs_extraction =
-        !engine_dir.exists() || REQUIRED_FILES.iter().any(|f| !engine_dir.join(f).exists());
+    let stamp_path = engine_dir.join(".engine_bundle_stamp");
+    let stamp_ok = std::fs::read_to_string(&stamp_path)
+        .ok()
+        .is_some_and(|s| s.trim() == ENGINE_BUNDLE_STAMP);
 
-    if needs_extraction {
-        sys_utils::kill_winws();
+    let needs_sync =
+        !engine_dir.exists() || !engine_requirements_satisfied(&engine_dir) || !stamp_ok;
 
-        if !engine_dir.exists() {
-            std::fs::create_dir_all(&engine_dir).map_err(AppError::Io)?;
-        }
-
-        ENGINE_DIR
-            .extract(&engine_dir)
-            .map_err(|e| AppError::Extraction(e.to_string()))?;
+    if !needs_sync {
+        return Ok(engine_dir);
     }
 
-    Ok(engine_dir)
+    sys_utils::kill_winws();
+
+    if !engine_dir.exists() {
+        std::fs::create_dir_all(&engine_dir).map_err(AppError::Io)?;
+    }
+
+    const ATTEMPTS: u32 = 8;
+    const SLEEP_MS: u64 = 350;
+    let mut last_err: Option<std::io::Error> = None;
+
+    for attempt in 0..ATTEMPTS {
+        if attempt > 0 {
+            sys_utils::kill_winws();
+            std::thread::sleep(std::time::Duration::from_millis(SLEEP_MS));
+        }
+        match ENGINE_DIR.extract(&engine_dir) {
+            Ok(()) => {
+                std::fs::write(&stamp_path, ENGINE_BUNDLE_STAMP).map_err(AppError::Io)?;
+                return Ok(engine_dir);
+            }
+            Err(e) => last_err = Some(e),
+        }
+    }
+
+    let msg = last_err
+        .as_ref()
+        .map(std::io::Error::to_string)
+        .unwrap_or_else(|| "unknown I/O error during engine extraction".to_string());
+
+    if engine_requirements_satisfied(&engine_dir) {
+        tracing::warn!(
+            error = %msg,
+            "embedded engine sync skipped (files may be in use); retrying on next launch"
+        );
+        return Ok(engine_dir);
+    }
+
+    Err(AppError::Extraction(msg))
 }
 
 pub fn resolve_strategy_path_in_dir(engine_dir: &Path, name: &str) -> AppResult<PathBuf> {
