@@ -14,6 +14,7 @@ fn build_client() -> Client {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct CoreStatus {
     pub winws_running: bool,
     pub watchdog_running: bool,
@@ -85,6 +86,7 @@ pub async fn stop() -> AppResult<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub async fn start_find() -> AppResult<reqwest::Response> {
     let client = build_client();
     let url = format!("{}/find", BASE_URL);

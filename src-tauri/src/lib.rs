@@ -3,7 +3,8 @@ mod app_state;
 mod autostart;
 mod commands;
 mod constants;
-mod engine;
+mod core_client;
+mod process_manager;
 mod sys_utils;
 mod tray;
 
@@ -109,7 +110,7 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(|_app, event| {
             if matches!(event, tauri::RunEvent::Exit) {
-                engine::stop_zapret();
+                // Core cleanup handled by process_manager
             }
         });
 }

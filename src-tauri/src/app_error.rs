@@ -1,17 +1,21 @@
 use thiserror::Error;
 
 #[derive(Error, Debug)]
+#[allow(dead_code)]
 pub enum AppError {
     #[error("Path error: {0}")]
     Path(String),
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
+    #[allow(dead_code)]
     #[error("Extraction error: {0}")]
     Extraction(String),
+    #[allow(dead_code)]
     #[error("Network error: {0}")]
     Network(String),
     #[error("Process error: {0}")]
     Process(String),
+    #[allow(dead_code)]
     #[error("Search aborted")]
     DiscoveryAborted,
     #[error("Tray error: {0}")]

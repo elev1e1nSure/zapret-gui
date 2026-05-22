@@ -1,17 +1,21 @@
 use crate::app_error::{AppError, AppResult};
 use crate::constants::CREATE_NO_WINDOW;
-use std::process::Child;
+use std::os::windows::process::CommandExt;
+use std::process::{Child, Command};
 use std::sync::Mutex;
-use tauri::AppHandle;
-use tokio::process::Command;
+use tauri::{AppHandle, Manager};
 
 static CORE_CHILD: Mutex<Option<Child>> = Mutex::new(None);
 
 pub async fn start_core(app_handle: &AppHandle) -> AppResult<()> {
-    let core_path = app_handle
-        .path_resolver()
-        .resolve_resource("zapret-core/zapret-core.exe")
-        .ok_or_else(|| AppError::Path("Failed to resolve zapret-core.exe".to_string()))?;
+    let resource_dir = app_handle
+        .path()
+        .resource_dir()
+        .map_err(|e| AppError::Path(format!("Failed to get resource dir: {}", e)))?;
+
+    let core_path = resource_dir.join("zapret-core").join("zapret-core.exe");
+
+    tracing::info!(path = %core_path.display(), "Resolved zapret-core.exe path");
 
     if !core_path.exists() {
         return Err(AppError::Path(format!(
@@ -54,6 +58,7 @@ pub async fn start_core(app_handle: &AppHandle) -> AppResult<()> {
     }
 }
 
+#[allow(dead_code)]
 pub async fn stop_core() -> AppResult<()> {
     // Kill the child process if we have a handle to it
     let mut child_guard = CORE_CHILD.lock().map_err(|e| {
@@ -70,8 +75,7 @@ pub async fn stop_core() -> AppResult<()> {
     let taskkill_result = Command::new("taskkill")
         .args(["/F", "/IM", "zapret-core.exe"])
         .creation_flags(CREATE_NO_WINDOW)
-        .output()
-        .await;
+        .output();
 
     // We don't error on taskkill failure - it's just a cleanup attempt
     if let Err(e) = taskkill_result {

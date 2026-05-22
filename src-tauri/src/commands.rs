@@ -1,23 +1,39 @@
 use std::sync::atomic::Ordering;
-use std::time::Duration;
 
-use serde_json::json;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, State};
 
 use crate::app_error::{AppError, AppResult};
 use crate::app_state::AppState;
-use crate::{autostart, engine, tray};
+use crate::core_client;
+use crate::process_manager;
+use crate::{autostart, tray};
 
 #[tauri::command]
 pub async fn run_strategy(handle: AppHandle, name: String, is_game_filter: bool) -> AppResult<()> {
     tracing::info!(strategy = %name, game_filter = is_game_filter, "run_strategy");
-    let engine_dir = engine::extract_engine(&handle)?;
-    let strategy_path = engine::resolve_strategy_path_in_dir(&engine_dir, &name)?;
-    let result = engine::execute_strategy(&handle, &strategy_path, is_game_filter);
-    if let Err(ref e) = result {
-        tracing::error!(strategy = %name, error = %e, "run_strategy failed");
+
+    // Ensure zapret-core is running
+    if let Err(e) = process_manager::ensure_core_running(&handle).await {
+        tracing::error!(error = %e, "ensure_core_running failed");
+        return Err(e);
     }
-    result
+    tracing::info!("zapret-core is running");
+
+    // Wait for API to be ready
+    if let Err(e) = core_client::wait_ready(5).await {
+        tracing::error!(error = %e, "wait_ready failed");
+        return Err(e);
+    }
+    tracing::info!("zapret-core API is ready");
+
+    // Start the best strategy
+    if let Err(e) = core_client::start_best().await {
+        tracing::error!(error = %e, "start_best failed");
+        return Err(e);
+    }
+    tracing::info!("start_best succeeded");
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -32,8 +48,8 @@ pub async fn abort_auto_discovery(state: State<'_, AppState>) -> AppResult<()> {
 
 #[tauri::command]
 pub async fn run_auto_discovery(
-    handle: AppHandle,
-    state: State<'_, AppState>,
+    _handle: AppHandle,
+    _state: State<'_, AppState>,
     strategies: Vec<String>,
     is_game_filter: bool,
 ) -> AppResult<String> {
@@ -42,73 +58,28 @@ pub async fn run_auto_discovery(
         game_filter = is_game_filter,
         "run_auto_discovery started"
     );
-    state.cancel_discovery.store(false, Ordering::SeqCst);
-    let engine_dir = engine::extract_engine(&handle)?;
-    let client = engine::build_connection_client();
-    let total = strategies.len();
-
-    for (idx, strategy) in strategies.into_iter().enumerate() {
-        if state.cancel_discovery.load(Ordering::SeqCst) {
-            tracing::info!("auto_discovery aborted by user");
-            return Err(AppError::DiscoveryAborted);
-        }
-
-        tracing::info!(strategy = %strategy, step = idx + 1, total, "trying strategy");
-        engine::stop_zapret();
-        let _ = handle.emit(
-            "discovery-strategy",
-            json!({
-                "strategy": strategy,
-                "index": idx + 1,
-                "total": total
-            }),
-        );
-        let strategy_path = engine::resolve_strategy_path_in_dir(&engine_dir, &strategy)?;
-
-        if engine::execute_strategy(&handle, &strategy_path, is_game_filter).is_err() {
-            tracing::warn!(strategy = %strategy, "strategy failed to spawn, skipping");
-            continue;
-        }
-
-        let strategy_timeout = tokio::time::sleep(Duration::from_secs(5));
-        tokio::pin!(strategy_timeout);
-        let mut poll_interval = tokio::time::interval(Duration::from_millis(500));
-        let mut matched = false;
-
-        loop {
-            tokio::select! {
-                _ = &mut strategy_timeout => { break; }
-                _ = poll_interval.tick() => {
-                    if state.cancel_discovery.load(Ordering::SeqCst) {
-                        engine::stop_zapret();
-                        tracing::info!("auto_discovery aborted during polling");
-                        return Err(AppError::DiscoveryAborted);
-                    }
-                    if engine::check_connection_with_client(&client).await {
-                        matched = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if matched {
-            tracing::info!(strategy = %strategy, "auto_discovery matched strategy");
-            return Ok(strategy);
-        }
-    }
-
-    tracing::warn!("auto_discovery exhausted all strategies");
-    Err(AppError::Network(
-        "Ни одна стратегия не сработала. Проверьте подключение к интернету или попробуйте ещё раз."
-            .into(),
-    ))
+    // TODO: Implement using zapret-core API
+    Err(AppError::Process("Not implemented yet".to_string()))
 }
 
 #[tauri::command]
 pub async fn stop_service() -> AppResult<()> {
     tracing::info!("stop_service");
-    engine::stop_zapret();
+
+    // Try to get current status
+    match core_client::get_status().await {
+        Ok(status) => {
+            if status.winws_running {
+                // Stop the service via API
+                core_client::stop().await?;
+            }
+        }
+        Err(_) => {
+            // Core not running - treat as success
+            tracing::info!("zapret-core not running, nothing to stop");
+        }
+    }
+
     Ok(())
 }
 
@@ -133,7 +104,7 @@ pub async fn exit_app(handle: AppHandle) {
     if let Some(tray) = handle.tray_by_id("main_tray") {
         let _ = tray.set_visible(false);
     }
-    engine::stop_zapret();
+    // TODO: Implement using process_manager
     handle.exit(0);
 }
 
