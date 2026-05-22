@@ -16,6 +16,8 @@ pub enum AppError {
     DiscoveryAborted,
     #[error("Tray error: {0}")]
     Tray(String),
+    #[error("Core API error: {0}")]
+    Core(String),
 }
 
 impl AppError {
@@ -30,6 +32,7 @@ impl AppError {
             AppError::Process(_) => "Process",
             AppError::DiscoveryAborted => "DiscoveryAborted",
             AppError::Tray(_) => "Tray",
+            AppError::Core(_) => "Core",
         }
     }
 }
@@ -66,6 +69,7 @@ mod tests {
             AppError::Process("x".into()),
             AppError::DiscoveryAborted,
             AppError::Tray("x".into()),
+            AppError::Core("x".into()),
         ];
         for v in variants {
             assert!(
