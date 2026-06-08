@@ -45,6 +45,58 @@
 
 ---
 
+## Разработка
+
+### Требования
+
+- Windows 10/11
+- Node.js 22+
+- [pnpm](https://pnpm.io/)
+- [Rust](https://rustup.rs/) (latest stable)
+
+### Установка
+
+```powershell
+pnpm install
+```
+
+### Запуск в dev-режиме
+
+```powershell
+pnpm tauri dev
+```
+
+### Тесты и линтинг
+
+```powershell
+# Frontend
+pnpm lint
+pnpm test
+
+# Rust (из директории src-tauri/)
+cd src-tauri
+cargo test
+cargo clippy
+```
+
+### Релизы
+
+Релизы публикуются автоматически при пуше тега `v*`:
+
+```powershell
+git tag v1.5.2
+git push origin v1.5.2
+```
+
+Workflow запускает тесты и собирает `.exe` инсталлятор.
+
+## Документация
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — архитектура и data flow
+- [`docs/STYLE_GUIDE.md`](docs/STYLE_GUIDE.md) — стиль кода (JS + Rust)
+- [`docs/PROJECT_RULES.md`](docs/PROJECT_RULES.md) — правила коммитов, версионирование, безопасность
+- [`claude.md`](claude.md) — контекст для AI-ассистентов
+
 ## Ссылки
 
 * [Оригинальный zapret](https://github.com/bol-van/zapret) — движок, на котором основана работа.
