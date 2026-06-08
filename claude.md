@@ -19,13 +19,7 @@ tests/            # Vitest units + e2e smoke
 docs/             # Project docs
 ```
 
-Key Rust modules:
-- `commands.rs` — IPC handlers exposed to the frontend.
-- `process_manager.rs` — Spawns/kills `winws.exe` silently (no console window).
-- `app_state.rs` — Global mutable state (engine status, strategy).
-- `core_client.rs` — Talks to zapret-core.
-- `sys_utils.rs` — Admin checks, Defender exclusions.
-- `tray.rs` — System tray.
+See `docs/ARCHITECTURE.md` for module descriptions and data flow.
 
 ## Run & Test
 
@@ -49,7 +43,6 @@ cargo fmt --check
 ### Style
 - Self-documenting code first. Add comments only to explain **why**, not **what**.
 - Keep React components under 150 lines; functions under 40 lines. Extract early.
-- One logical change per commit. Use Conventional Commits in English.
 
 ### What Not to Touch
 - `src-tauri/resources/zapret-core/` binaries and driver files.
@@ -57,8 +50,8 @@ cargo fmt --check
 - `package.json` scripts.
 
 ### Error Handling
-- **Rust**: Propagate with `?`. Use `thiserror` enums. `unwrap`/`expect` only for impossible invariants; log the error before failing if user-facing.
-- **JS**: Fail gracefully; surface actionable messages to the user. Never swallow errors silently.
+- **Rust**: propagate with `?`, use `thiserror`. See `docs/STYLE_GUIDE.md` for details.
+- **JS**: fail gracefully; surface actionable messages to the user. Never swallow errors silently.
 
 ## Autonomy Boundaries
 
