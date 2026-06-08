@@ -53,22 +53,6 @@ cargo fmt --check
 - **Rust**: propagate with `?`, use `thiserror`. See `docs/STYLE_GUIDE.md` for details.
 - **JS**: fail gracefully; surface actionable messages to the user. Never swallow errors silently.
 
-## Autonomy Boundaries
-
-**Do without asking:**
-- Bug fixes, refactors, test additions.
-- UI copy changes or small styling tweaks.
-- Adding a new IPC command that follows the existing pattern.
-- Creating a new hook that follows the existing pattern.
-
-**Stop and ask first:**
-- Adding new dependencies (Rust crates or npm packages).
-- Changing Tauri configuration, Cargo lint rules, or build scripts.
-- Modifying zapret-core binaries or driver files.
-- Architectural changes that cross the frontend/backend boundary in a new way.
-- Changes to CI/CD workflows, release process, or signing.
-- Any `unsafe` code (already forbidden by lint, but still — ask).
-
 ## Patterns
 
 **Adding an IPC command:**

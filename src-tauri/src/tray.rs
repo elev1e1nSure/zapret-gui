@@ -4,6 +4,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::app_error::AppError;
 use crate::app_state::AppState;
+use crate::process_manager;
 
 pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
     let toggle_item = MenuItem::with_id(app, "toggle", "Turn On", true, None::<&str>)?;
@@ -38,7 +39,7 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
                 if let Some(tray) = app.tray_by_id("main_tray") {
                     let _ = tray.set_visible(false);
                 }
-                // Core cleanup handled by process_manager
+                let _ = process_manager::stop_core();
                 app.exit(0);
             }
             _ => {}

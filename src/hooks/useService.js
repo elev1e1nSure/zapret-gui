@@ -1,28 +1,29 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { STRATEGIES, APP_STATUS, TIMEOUTS, DISCOVERY_ABORTED_TYPE } from "../config";
+import { APP_STATUS, TIMEOUTS, DISCOVERY_ABORTED_TYPE } from "../config";
 import { useSettings } from "./useSettings";
 import { useServiceUI } from "./useServiceUI";
-import { useDiscovery, clearStrategyCache, humanizeError } from "./useDiscovery";
+import { useDiscovery, humanizeError } from "./useDiscovery";
+
+const CONNECTING_MESSAGES = [
+  "Запускаем защиту...",
+  "Проверяем соединение...",
+  "Настраиваем параметры...",
+  "Ищем лучшие настройки...",
+];
 
 export function useService() {
   const settings = useSettings();
 
   const [isActive, setIsActive] = useState(false);
-  const [isAutoConnected, setIsAutoConnected] = useState(false);
-  const [forceDiscoveryUI, setForceDiscoveryUI] = useState(false);
   const [status, setStatus] = useState(APP_STATUS.READY());
   const [currentScreen, setCurrentScreen] = useState("main");
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [processState, setProcessState] = useState({ isLoading: false, isExiting: false });
 
-  const { showLoadingUI } = useServiceUI(processState.isLoading, status, forceDiscoveryUI);
+  const { showLoadingUI } = useServiceUI(processState.isLoading, status);
   const abortControllerRef = useRef(false);
   const finalizeTimerRef = useRef(null);
-
-  // Computed only for internal use inside toggleService
-  const activeStrategyLabel = STRATEGIES.find(s => s.value === settings.selectedStrategy)?.label || "Custom";
 
   const finalizeProcess = useCallback((immediate = false) => {
     if (immediate) {
@@ -41,42 +42,91 @@ export function useService() {
     };
   }, []);
 
-  const { startDiscovery, startDiscoverySkipping, abortDiscovery } = useDiscovery({
-    settings,
+  // Cycle through friendly status messages while loading but not yet in discovery
+  useEffect(() => {
+    if (!processState.isLoading) return;
+
+    const discoveryPrefix = APP_STATUS.DISCOVERY();
+    let i = 0;
+    setStatus(CONNECTING_MESSAGES[0]);
+
+    const interval = setInterval(() => {
+      i = (i + 1) % CONNECTING_MESSAGES.length;
+      setStatus(prev => prev.startsWith(discoveryPrefix) ? prev : CONNECTING_MESSAGES[i]);
+    }, 4500);
+
+    return () => clearInterval(interval);
+  }, [processState.isLoading]);
+
+  const { startDiscovery, abortDiscovery } = useDiscovery({
     setStatus,
     setIsActive,
     setProcessState,
     abortControllerRef,
   });
 
-  // Sync active state with tray icon
   useEffect(() => {
     invoke("update_tray_status", { isActive }).catch(err => {
       console.error("[Service] Failed to update tray status:", err);
     });
   }, [isActive]);
 
-  const toggleService = useCallback(async () => {
-    if (processState.isExiting) {
-      return;
+  // SSE listener for real-time core status
+  useEffect(() => {
+    let es = null;
+    let reconnectTimer = null;
+
+    const connect = () => {
+      try {
+        es = new EventSource("http://127.0.0.1:7432/api/events");
+
+        es.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === "status") {
+              if (data.status === "running" && data.strategy) {
+                setIsActive(true);
+                setStatus(APP_STATUS.RUNNING(data.strategy));
+              } else if (data.status === "stopped") {
+                setIsActive(false);
+                setStatus(APP_STATUS.READY());
+              }
+            }
+          } catch {
+            // ignore malformed events
+          }
+        };
+
+        es.onerror = () => {
+          if (es) es.close();
+        };
+      } catch {
+        // EventSource not available
+      }
+    };
+
+    if (isActive) {
+      connect();
     }
 
-    // While a manual strategy is starting, both `isLoading` and `isActive` can be true for a
-    // brief window. Prefer STOP over "abort discovery" so we never leave `isActive` stuck on
-    // with a READY status (abort path does not clear `isActive`).
+    return () => {
+      if (es) es.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+    };
+  }, [isActive]);
+
+  const toggleService = useCallback(async () => {
+    if (processState.isExiting) return;
+
     if (isActive) {
       setIsActive(false);
-      setIsAutoConnected(false);
-      setForceDiscoveryUI(false);
       setProcessState({ isLoading: false, isExiting: true });
       setStatus(APP_STATUS.READY());
-      try {
-        await invoke("stop_service");
-        finalizeProcess(true);
-      } catch (error) {
-        setStatus(APP_STATUS.ERROR(humanizeError(error)));
-        setProcessState({ isLoading: false, isExiting: false });
-      }
+      // Fire and forget — don't block the button while winws terminates
+      invoke("stop_service").catch(err => {
+        console.warn("[Service] stop_service failed:", err);
+      });
+      finalizeProcess(); // 300ms animation, then isExiting: false
       return;
     }
 
@@ -90,104 +140,74 @@ export function useService() {
     abortControllerRef.current = false;
 
     try {
-      if (settings.selectedStrategy === "auto") {
-        await startDiscovery();
-        setIsAutoConnected(true);
-        setForceDiscoveryUI(false);
-      } else {
-        setForceDiscoveryUI(false);
-        setIsAutoConnected(false);
-        setIsActive(true);
-        setStatus(APP_STATUS.RUNNING(activeStrategyLabel));
-        await invoke("run_strategy", {
-          name: settings.selectedStrategy,
-          isGameFilter: settings.isGameFilter,
-        });
-      }
-    } catch (error) {
-      if (!abortControllerRef.current && error?.type !== DISCOVERY_ABORTED_TYPE) {
+      console.log("[Service] starting discovery");
+      await startDiscovery();
+    } catch (discError) {
+      if (!abortControllerRef.current && discError?.type !== DISCOVERY_ABORTED_TYPE) {
+        console.warn("[Service] discovery failed:", discError);
         setIsActive(false);
-        setIsAutoConnected(false);
-        setForceDiscoveryUI(false);
-        setStatus(APP_STATUS.ERROR(humanizeError(error)));
+        setStatus(APP_STATUS.ERROR(humanizeError(discError)));
       }
     } finally {
       setProcessState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [isActive, processState.isLoading, processState.isExiting, settings, activeStrategyLabel, finalizeProcess, startDiscovery, abortDiscovery]);
+  }, [isActive, processState.isLoading, processState.isExiting, finalizeProcess, startDiscovery, abortDiscovery]);
 
-  // Called from the "Плохо работает?" button — excludes the current strategy and restarts discovery.
-  const reportBadStrategy = useCallback(async (strategyValue) => {
-    setIsAutoConnected(false);
-    setForceDiscoveryUI(true);
-    settings.toggleExcludedStrategy(strategyValue);
-    clearStrategyCache();
-
-    setIsActive(false);
-    setProcessState({ isLoading: true, isExiting: true });
-    setStatus(APP_STATUS.STOPPING());
-    try {
-      await invoke("stop_service");
-    } catch (e) {
-      console.warn("[Service] Stop failed during reportBadStrategy:", e);
-    }
-
-    // Keep the same stop → start rhythm as normal toggle for a smoother visual transition.
-    await new Promise(resolve => setTimeout(resolve, TIMEOUTS.PROCESS_FINALIZE_DELAY));
-
-    abortControllerRef.current = false;
-    setProcessState({ isLoading: true, isExiting: false });
-
-    try {
-      await startDiscoverySkipping(strategyValue);
-      setIsAutoConnected(true);
-      setForceDiscoveryUI(false);
-    } catch (error) {
-      if (!abortControllerRef.current && error?.type !== DISCOVERY_ABORTED_TYPE) {
-        setIsActive(false);
-        setIsAutoConnected(false);
-        setForceDiscoveryUI(false);
-        setStatus(APP_STATUS.ERROR(humanizeError(error)));
-      }
-    } finally {
-      setForceDiscoveryUI(false);
-      setProcessState(prev => ({ ...prev, isLoading: false }));
-    }
-  }, [settings, startDiscoverySkipping]);
-
-  // Keep a stable ref so the tray listener always calls the latest version
   const toggleServiceRef = useRef(toggleService);
   useEffect(() => { toggleServiceRef.current = toggleService; }, [toggleService]);
 
-  // Tray toggle event
   useEffect(() => {
     const unlisten = listen("tray-toggle", () => toggleServiceRef.current());
     return () => { unlisten.then(f => f()).catch(console.warn); };
   }, []);
 
-  // Autoconnect on startup
   useEffect(() => {
-    if (settings.isAutoConnect) {
-      const timer = setTimeout(() => {
-        settings.setSelectedStrategy("auto");
-        toggleServiceRef.current();
-      }, TIMEOUTS.AUTO_CONNECT_DELAY);
-      return () => clearTimeout(timer);
-    }
+    let timer = null;
+
+    const init = async () => {
+      // Sync with actual core state on startup
+      let alreadyRunning = false;
+      try {
+        const statusJson = await invoke("get_status");
+        const coreStatus = JSON.parse(statusJson);
+        if (coreStatus.winws_running) {
+          alreadyRunning = true;
+          setIsActive(true);
+          setStatus(APP_STATUS.RUNNING(coreStatus.current_strategy ?? "Best"));
+        }
+      } catch {
+        // Core not running yet — proceed normally
+      }
+
+      // AutoConnect only if core isn't already running
+      if (settings.isAutoConnect && !alreadyRunning) {
+        timer = setTimeout(() => toggleServiceRef.current(), TIMEOUTS.AUTO_CONNECT_DELAY);
+      }
+    };
+
+    init();
+    return () => { if (timer) clearTimeout(timer); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const resetKnowledge = useCallback(async () => {
+    try {
+      await invoke("reset_knowledge");
+      // After reset winws was stopped — sync GUI state
+      setIsActive(false);
+      setStatus(APP_STATUS.READY());
+      return true;
+    } catch (error) {
+      console.error("[Service] Failed to reset knowledge:", error);
+      return false;
+    }
+  }, [setIsActive, setStatus]);
 
   return {
     isActive,
-    isAutoConnected,
-    reportBadStrategy,
     status,
     isLoading: processState.isLoading,
     showLoadingUI,
     isExiting: processState.isExiting,
-    selectedStrategy: settings.selectedStrategy,
-    setSelectedStrategy: settings.setSelectedStrategy,
-    isDropdownOpen,
-    setIsDropdownOpen,
     toggleService,
     theme: settings.theme,
     setTheme: settings.setTheme,
@@ -197,12 +217,8 @@ export function useService() {
     toggleAutoConnect: settings.toggleAutoConnect,
     isMinimizeToTray: settings.isMinimizeToTray,
     toggleMinimizeToTray: settings.toggleMinimizeToTray,
-    isGameFilter: settings.isGameFilter,
-    toggleGameFilter: settings.toggleGameFilter,
-    excludedStrategies: settings.excludedStrategies,
-    toggleExcludedStrategy: settings.toggleExcludedStrategy,
-    clearStrategyCache,
     resetAppData: settings.resetAppData,
+    resetKnowledge,
     currentScreen,
     setCurrentScreen,
   };

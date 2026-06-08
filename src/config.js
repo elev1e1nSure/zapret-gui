@@ -1,26 +1,3 @@
-export const STRATEGIES = [
-  { label: "Автоподбор", value: "auto" },
-  { label: "General", value: "general_silent.bat" },
-  { label: "General ALT", value: "general (ALT)_silent.bat" },
-  { label: "General ALT 2", value: "general (ALT2)_silent.bat" },
-  { label: "General ALT 3", value: "general (ALT3)_silent.bat" },
-  { label: "General ALT 4", value: "general (ALT4)_silent.bat" },
-  { label: "General ALT 5", value: "general (ALT5)_silent.bat" },
-  { label: "General ALT 6", value: "general (ALT6)_silent.bat" },
-  { label: "General ALT 7", value: "general (ALT7)_silent.bat" },
-  { label: "General ALT 8", value: "general (ALT8)_silent.bat" },
-  { label: "General ALT 9", value: "general (ALT9)_silent.bat" },
-  { label: "General ALT 10", value: "general (ALT10)_silent.bat" },
-  { label: "General ALT 11", value: "general (ALT11)_silent.bat" },
-  { label: "Fake TLS Auto", value: "general (FAKE TLS AUTO)_silent.bat" },
-  { label: "Fake TLS Auto ALT", value: "general (FAKE TLS AUTO ALT)_silent.bat" },
-  { label: "Fake TLS Auto ALT 2", value: "general (FAKE TLS AUTO ALT2)_silent.bat" },
-  { label: "Fake TLS Auto ALT 3", value: "general (FAKE TLS AUTO ALT3)_silent.bat" },
-  { label: "Simple Fake", value: "general (SIMPLE FAKE)_silent.bat" },
-  { label: "Simple Fake ALT", value: "general (SIMPLE FAKE ALT)_silent.bat" },
-  { label: "Simple Fake ALT 2", value: "general (SIMPLE FAKE ALT2)_silent.bat" },
-];
-
 // Injected by Vite at build time from package.json
 export const APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
 
@@ -43,8 +20,8 @@ export const APP_STATUS = {
     if (index && total) return `Подбор: ${label} (${index}/${total})`;
     return `Подбор: ${label}`;
   },
-  RUNNING: (label) => `${label} запущен`,
-  MATCHED: (label) => `${label} запущен`,
+  RUNNING: () => "Обход запущен",
+  MATCHED: () => "Обход запущен",
   STOPPING: () => "Остановка...",
   ERROR: (err) => `Ошибка: ${err}`,
   DISCOVERY_ABORTED: () => "Поиск отменен",
@@ -54,21 +31,7 @@ export const APP_STATUS = {
 export const DISCOVERY_ABORTED_TYPE = "DiscoveryAborted";
 
 export const STORAGE_KEYS = {
-  STRATEGY: "zapret_strategy",
   THEME: "zapret_theme",
   AUTOCONNECT: "zapret_autoconnect",
   MINIMIZE_TO_TRAY: "zapret_minimize_to_tray",
-  EXCLUDED: "zapret_excluded_strategies",
-  GAME_FILTER: "zapret_game_filter",
-  LAST_WORKING_STRATEGY: "zapret_last_working_strategy",
-};
-
-export const TOOLTIPS = {
-  AUTOSTART: "Запускать приложение при включении ПК.",
-  AUTOCONNECT: "Автоматически включать обход при запуске.",
-  MINIMIZE_TRAY: "Закрытие окна сворачивает приложение в трей.",
-  GAME_FILTER: "Исключает игровые порты из обхода во избежание лагов и потери пакетов в играх.",
-  DISCOVERY_EXCLUSIONS: "Отредактируйте список стратегий, которые автоподбор будет пропускать.",
-  CLEAR_CACHE: "Очищает кэш найденных рабочих стратегий.",
-  RESET_SETTINGS: "Сбрасывает локальные настройки по умолчанию.",
 };

@@ -44,16 +44,6 @@
   100% { transform: translate(-50%, -50%) scale(1); }
 }
 
-@keyframes tooltipFadeIn {
-  from { opacity: 0; transform: translate(-50%, -100%) translateY(8px) scale(0.95); }
-  to   { opacity: 1; transform: translate(-50%, -100%) translateY(-10px) scale(1); }
-}
-
-@keyframes tooltipFadeOut {
-  from { opacity: 1; transform: translate(-50%, -100%) translateY(-10px) scale(1); }
-  to   { opacity: 0; transform: translate(-50%, -100%) translateY(8px) scale(0.95); }
-}
-
 @keyframes feedbackFadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 0.72; transform: translateY(0); }

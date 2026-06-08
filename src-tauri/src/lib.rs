@@ -9,8 +9,6 @@ mod sys_utils;
 mod tray;
 
 use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
 
 use tauri::Manager;
 
@@ -51,12 +49,10 @@ fn init_logging(log_dir: PathBuf) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let cancel_discovery = Arc::new(AtomicBool::new(false));
     let toggle_item_store = std::sync::Mutex::new(None);
 
     tauri::Builder::default()
         .manage(AppState {
-            cancel_discovery,
             toggle_item: toggle_item_store,
         })
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
@@ -75,7 +71,9 @@ pub fn run() {
             commands::is_autostart_enabled,
             commands::set_autostart,
             commands::set_tray_visible,
-            commands::exit_app
+            commands::exit_app,
+            commands::reset_knowledge,
+            commands::get_status
         ])
         .setup(|app| {
             // Resolve log directory before anything else so all subsequent

@@ -187,22 +187,6 @@
   line-height: 1.2;
 }
 
-.zn-subsection-label-wrap .tooltip-container {
-  z-index: auto;
-}
-
-.zn-subsection-label-wrap .info-icon {
-  color: var(--text-secondary);
-  opacity: 0.5;
-  margin-left: 0;
-  padding: 0;
-}
-
-.zn-subsection-label-wrap .info-icon:hover {
-  color: var(--text-primary);
-  opacity: 1;
-}
-
 .zn-row-group-label {
   border-bottom: none;
 }

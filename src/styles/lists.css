@@ -6,12 +6,6 @@
   padding-bottom: 0;
 }
 
-/* Each blurable subsection inside the lists area.
-   filter 0.28s is required so blur animates in AND out. */
-.tooltip-blurable {
-  transition: filter 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 /* --- Segmented control (Реестр РФ / Все IP / Откл.) --- */
 .segment-control {
   display: flex;
