@@ -16,6 +16,7 @@
       "icons/icon.png",
       "icons/icon.ico"
     ],
+    "resources": ["resources/zapret-core"],
     "windows": {
       "wix": {
         "language": ["ru-RU", "en-US"]
@@ -37,7 +38,7 @@
         "maximizable": false,
         "decorations": false,
         "transparent": true,
-        "devtools": false
+        "devtools": true
       }
     ],
     "security": {

@@ -15,9 +15,7 @@
 .header-link {
   text-decoration: none;
   -webkit-app-region: no-drag;
-  position: relative;
   display: inline-block;
-  overflow: hidden;
 }
 
 .header h1 {
@@ -32,31 +30,8 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Subtle underline reveal on hover */
-.header-link::after {
-  content: '';
-  position: absolute;
-  left: 8%;
-  right: 8%;
-  bottom: 3px;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.35);
-  transform: scaleX(0);
-  transform-origin: center;
-  pointer-events: none;
-  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.header-link:hover::after {
-  transform: scaleX(1);
-}
-
 .theme-light .header h1 {
   color: var(--text-primary);
-}
-
-.theme-light .header-link::after {
-  background: rgba(0, 0, 0, 0.22);
 }
 
 .status-text {

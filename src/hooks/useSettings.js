@@ -1,29 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { STORAGE_KEYS, STRATEGIES } from "../config";
+import { STORAGE_KEYS } from "../config";
 import { usePersistedState } from "./usePersistedState";
 
 const boolSerialize = (v) => String(Boolean(v));
 const boolDeserialize = (raw) => raw === "true";
 
-const jsonSerialize = (v) => JSON.stringify(v);
-const jsonDeserialize = (raw) => {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
-};
-
-const strategyDeserialize = (raw) =>
-  STRATEGIES.some(s => s.value === raw) ? raw : "auto";
-
 export function useSettings() {
-  const [selectedStrategy, setSelectedStrategy] = usePersistedState(
-    STORAGE_KEYS.STRATEGY,
-    "auto",
-    { deserialize: strategyDeserialize },
-  );
   const [theme, setTheme] = usePersistedState(STORAGE_KEYS.THEME, "dark");
   const [isAutoConnect, setIsAutoConnect] = usePersistedState(
     STORAGE_KEYS.AUTOCONNECT,
@@ -33,16 +16,6 @@ export function useSettings() {
   const [isMinimizeToTray, setIsMinimizeToTray] = usePersistedState(
     STORAGE_KEYS.MINIMIZE_TO_TRAY,
     true,
-    { serialize: boolSerialize, deserialize: boolDeserialize },
-  );
-  const [excludedStrategies, setExcludedStrategies] = usePersistedState(
-    STORAGE_KEYS.EXCLUDED,
-    [],
-    { serialize: jsonSerialize, deserialize: jsonDeserialize },
-  );
-  const [isGameFilter, setIsGameFilter] = usePersistedState(
-    STORAGE_KEYS.GAME_FILTER,
-    false,
     { serialize: boolSerialize, deserialize: boolDeserialize },
   );
 
@@ -80,18 +53,6 @@ export function useSettings() {
     () => setIsMinimizeToTray(prev => !prev),
     [setIsMinimizeToTray],
   );
-  const toggleGameFilter = useCallback(
-    () => setIsGameFilter(prev => !prev),
-    [setIsGameFilter],
-  );
-
-  const toggleExcludedStrategy = useCallback((value) => {
-    setExcludedStrategies(prev =>
-      prev.includes(value)
-        ? prev.filter(v => v !== value)
-        : [...prev, value],
-    );
-  }, [setExcludedStrategies]);
 
   const resetAppData = useCallback(async () => {
     try {
@@ -108,30 +69,18 @@ export function useSettings() {
       return false;
     }
 
-    // Restore explicit defaults used across the app.
-    setSelectedStrategy("auto");
     setTheme("dark");
     setIsAutoConnect(false);
     setIsMinimizeToTray(true);
-    setExcludedStrategies([]);
-    setIsGameFilter(false);
 
     return true;
   }, [
-    setExcludedStrategies,
     setIsAutoConnect,
-    setIsGameFilter,
     setIsMinimizeToTray,
-    setSelectedStrategy,
     setTheme,
   ]);
 
-  // Stable identity — avoids cascading recomputations in consuming hooks.
   return useMemo(() => ({
-    selectedStrategy,
-    setSelectedStrategy,
-    excludedStrategies,
-    toggleExcludedStrategy,
     theme,
     setTheme,
     isAutoConnect,
@@ -140,17 +89,12 @@ export function useSettings() {
     toggleMinimizeToTray,
     isAutostart,
     toggleAutostart,
-    isGameFilter,
-    toggleGameFilter,
     resetAppData,
   }), [
-    selectedStrategy, setSelectedStrategy,
-    excludedStrategies, toggleExcludedStrategy,
     theme, setTheme,
     isAutoConnect, toggleAutoConnect,
     isMinimizeToTray, toggleMinimizeToTray,
     isAutostart, toggleAutostart,
-    isGameFilter, toggleGameFilter,
     resetAppData,
   ]);
 }

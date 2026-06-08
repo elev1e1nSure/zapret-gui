@@ -1,21 +1,27 @@
 use thiserror::Error;
 
 #[derive(Error, Debug)]
+#[allow(dead_code)]
 pub enum AppError {
     #[error("Path error: {0}")]
     Path(String),
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
+    #[allow(dead_code)]
     #[error("Extraction error: {0}")]
     Extraction(String),
+    #[allow(dead_code)]
     #[error("Network error: {0}")]
     Network(String),
     #[error("Process error: {0}")]
     Process(String),
+    #[allow(dead_code)]
     #[error("Search aborted")]
     DiscoveryAborted,
     #[error("Tray error: {0}")]
     Tray(String),
+    #[error("Core API error: {0}")]
+    Core(String),
 }
 
 impl AppError {
@@ -30,6 +36,7 @@ impl AppError {
             AppError::Process(_) => "Process",
             AppError::DiscoveryAborted => "DiscoveryAborted",
             AppError::Tray(_) => "Tray",
+            AppError::Core(_) => "Core",
         }
     }
 }
@@ -66,6 +73,7 @@ mod tests {
             AppError::Process("x".into()),
             AppError::DiscoveryAborted,
             AppError::Tray("x".into()),
+            AppError::Core("x".into()),
         ];
         for v in variants {
             assert!(

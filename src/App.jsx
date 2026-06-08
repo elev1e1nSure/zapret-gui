@@ -4,27 +4,16 @@ import { THEME_TRANSITION } from "./config";
 import { TitleBar } from "./components/TitleBar";
 import { StatusHeader } from "./components/StatusHeader";
 import { PowerButton } from "./components/PowerButton";
-import { StrategySelector } from "./components/StrategySelector";
 import { SettingsScreen } from "./components/SettingsScreen";
 import "./App.css";
-
-const FEEDBACK_DELAY_MS = 3000;
-const FEEDBACK_SWAP_DELAY_MS = 220;
-const TOAST_DURATION_MS = 1900;
-const TOAST_FADE_OUT_MS = 260;
 
 function App() {
   const {
     isActive,
-    reportBadStrategy,
     status,
     isLoading,
     showLoadingUI,
-    selectedStrategy,
-    setSelectedStrategy,
     isExiting,
-    isDropdownOpen,
-    setIsDropdownOpen,
     toggleService,
     theme,
     setTheme,
@@ -34,79 +23,15 @@ function App() {
     toggleAutoConnect,
     isMinimizeToTray,
     toggleMinimizeToTray,
-    isGameFilter,
-    toggleGameFilter,
-    excludedStrategies,
-    toggleExcludedStrategy,
-    clearStrategyCache,
     resetAppData,
+    resetKnowledge,
     currentScreen,
     setCurrentScreen,
   } = useService();
-  const isSelectedStrategyExcluded = excludedStrategies.includes(selectedStrategy);
 
   const [transitionOverlay, setTransitionOverlay] = useState(null);
   const overlayTimeoutRef = useRef(null);
   const themeSwitchTimeoutsRef = useRef([]);
-
-  // "Плохо работает?" button state
-  const [showFeedbackButton, setShowFeedbackButton] = useState(false);
-  const [isFeedbackButtonClosing, setIsFeedbackButtonClosing] = useState(false);
-  const [feedbackToast, setFeedbackToast] = useState(false);
-  const [isFeedbackToastClosing, setIsFeedbackToastClosing] = useState(false);
-  const feedbackTimerRef = useRef(null);
-  const feedbackSwapTimerRef = useRef(null);
-  const toastTimerRef = useRef(null);
-  const toastCloseTimerRef = useRef(null);
-
-  // Show the button after a delay for any active connection.
-  useEffect(() => {
-    clearTimeout(feedbackTimerRef.current);
-    if (isActive && !showLoadingUI && !isSelectedStrategyExcluded) {
-      feedbackTimerRef.current = setTimeout(() => {
-        setShowFeedbackButton(true);
-      }, FEEDBACK_DELAY_MS);
-    } else {
-      setShowFeedbackButton(false);
-      setIsFeedbackButtonClosing(false);
-      setFeedbackToast(false);
-      setIsFeedbackToastClosing(false);
-    }
-    return () => clearTimeout(feedbackTimerRef.current);
-  }, [isActive, showLoadingUI, isSelectedStrategyExcluded]);
-
-  const handleBadStrategy = useCallback(() => {
-    setIsFeedbackButtonClosing(true);
-    clearTimeout(feedbackSwapTimerRef.current);
-    clearTimeout(toastTimerRef.current);
-    clearTimeout(toastCloseTimerRef.current);
-
-    // Start transition to discovery immediately, while the small button finishes its exit animation.
-    reportBadStrategy(selectedStrategy);
-
-    feedbackSwapTimerRef.current = setTimeout(() => {
-      setShowFeedbackButton(false);
-      setIsFeedbackButtonClosing(false);
-      setFeedbackToast(true);
-      setIsFeedbackToastClosing(false);
-      toastTimerRef.current = setTimeout(() => {
-        setIsFeedbackToastClosing(true);
-        toastCloseTimerRef.current = setTimeout(() => {
-          setFeedbackToast(false);
-          setIsFeedbackToastClosing(false);
-        }, TOAST_FADE_OUT_MS);
-      }, TOAST_DURATION_MS);
-    }, FEEDBACK_SWAP_DELAY_MS);
-  }, [reportBadStrategy, selectedStrategy]);
-
-  useEffect(() => {
-    return () => {
-      clearTimeout(feedbackTimerRef.current);
-      clearTimeout(feedbackSwapTimerRef.current);
-      clearTimeout(toastTimerRef.current);
-      clearTimeout(toastCloseTimerRef.current);
-    };
-  }, []);
 
   const clearThemeSwitchTimers = () => {
     for (const id of themeSwitchTimeoutsRef.current) {
@@ -174,37 +99,9 @@ function App() {
             isLoading={isLoading}
             showLoadingUI={showLoadingUI}
             isExiting={isExiting}
-            isDropdownOpen={isDropdownOpen}
             toggleService={toggleService}
             onSettingsClick={handleOpenSettings}
           />
-
-          <StrategySelector
-            selectedStrategy={selectedStrategy}
-            setSelectedStrategy={setSelectedStrategy}
-            isActive={isActive}
-            isLoading={isLoading}
-            isExiting={isExiting}
-            isDropdownOpen={isDropdownOpen}
-            setIsDropdownOpen={setIsDropdownOpen}
-            excludedStrategies={excludedStrategies}
-          />
-
-          <div className="feedback-anchor">
-            {showFeedbackButton && (
-              <button
-                className={`feedback-btn ${isFeedbackButtonClosing ? "closing" : ""}`}
-                onClick={handleBadStrategy}
-              >
-                Плохо работает?
-              </button>
-            )}
-            {feedbackToast && (
-              <div className={`feedback-toast ${isFeedbackToastClosing ? "closing" : ""}`}>
-                Стратегия исключена,<br />ищем следующую
-              </div>
-            )}
-          </div>
         </div>
 
         <SettingsScreen
@@ -217,12 +114,8 @@ function App() {
           onAutoConnectToggle={toggleAutoConnect}
           isMinimizeToTray={isMinimizeToTray}
           onMinimizeToTrayToggle={toggleMinimizeToTray}
-          isGameFilter={isGameFilter}
-          onGameFilterToggle={toggleGameFilter}
-          excludedStrategies={excludedStrategies}
-          onToggleExcluded={toggleExcludedStrategy}
-          onClearCache={clearStrategyCache}
           onResetAppData={resetAppData}
+          onResetKnowledge={resetKnowledge}
         />
       </div>
 

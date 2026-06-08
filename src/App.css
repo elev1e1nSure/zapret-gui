@@ -221,9 +221,7 @@ html, body, #root {
 .header-link {
     text-decoration: none;
     -webkit-app-region: no-drag;
-    position: relative;
     display: inline-block;
-    overflow: hidden;
 }
 
 .header h1 {
@@ -239,31 +237,8 @@ html, body, #root {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Minimal hover: subtle underline reveal (no color/position change) */
-.header-link::after {
-    content: '';
-    position: absolute;
-    left: 8%;
-    right: 8%;
-    bottom: 3px;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.35);
-    transform: scaleX(0);
-    transform-origin: center;
-    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none;
-}
-
-.header-link:hover::after {
-    transform: scaleX(1);
-}
-
 .theme-light .header h1 {
     color: var(--text-primary);
-}
-
-.theme-light .header-link::after {
-    background: rgba(0, 0, 0, 0.22);
 }
 
 .status-text {
@@ -745,113 +720,6 @@ html, body, #root {
     display: flex;
     align-items: center;
     flex-shrink: 0;
-}
-
-/* Tooltips */
-.tooltip-container {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    z-index: 100;
-}
-
-.info-icon {
-    color: var(--text-secondary);
-    opacity: 0.3;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    padding: 8px;
-    margin-left: -8px;
-    position: relative;
-}
-
-.info-icon.active {
-    opacity: 1;
-    color: var(--accent-color);
-}
-
-.info-icon:hover {
-    opacity: 0.8;
-    color: var(--accent-color);
-}
-
-.tooltip-bubble {
-    --tooltip-bg: #313338;
-    --tooltip-border: var(--button-bg);
-    position: fixed;
-    transform: translate(-50%, -100%);
-    width: 220px;
-    box-sizing: border-box;
-    background: var(--tooltip-bg);
-    backdrop-filter: none;
-    border: 1px solid var(--tooltip-border);
-    border-radius: 12px;
-    padding: 12px 16px;
-    color: var(--text-primary);
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.4;
-    white-space: pre-line;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-    pointer-events: none;
-    text-align: left;
-    z-index: 1008;
-}
-
-.tooltip-bubble.tooltip-in-panel {
-    position: absolute;
-}
-
-.tooltip-bubble.tooltip-above {
-    transform: translate(-50%, -100%);
-}
-
-.tooltip-bubble.tooltip-below {
-    transform: translate(-50%, 0);
-}
-
-.tooltip-bubble.theme-light {
-    --tooltip-bg: rgb(236, 238, 241);
-    --tooltip-border: rgba(62, 70, 82, 0.12);
-    backdrop-filter: none;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.11);
-}
-
-.tooltip-bubble.fade-in {
-    animation: tooltipFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.tooltip-bubble.fade-out {
-    animation: tooltipFadeOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes tooltipFadeIn {
-    from { opacity: 0; transform: translate(-50%, -100%) translateY(8px); }
-    to { opacity: 1; transform: translate(-50%, -100%) translateY(-10px); }
-}
-
-@keyframes tooltipFadeOut {
-    from { opacity: 1; transform: translate(-50%, -100%) translateY(-10px); }
-    to { opacity: 0; transform: translate(-50%, -100%) translateY(8px); }
-}
-
-.tooltip-bubble.tooltip-below.fade-in {
-    animation: tooltipFadeInBelow 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.tooltip-bubble.tooltip-below.fade-out {
-    animation: tooltipFadeOutBelow 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes tooltipFadeInBelow {
-    from { opacity: 0; transform: translate(-50%, 0) translateY(-8px); }
-    to { opacity: 1; transform: translate(-50%, 0) translateY(10px); }
-}
-
-@keyframes tooltipFadeOutBelow {
-    from { opacity: 1; transform: translate(-50%, 0) translateY(10px); }
-    to { opacity: 0; transform: translate(-50%, 0) translateY(-8px); }
 }
 
 .settings-group-header {

@@ -1,6 +1,6 @@
 import { useRef } from "react";
 
-export function PowerButton({ isActive, isLoading, showLoadingUI, isExiting, isDropdownOpen, toggleService, onSettingsClick }) {
+export function PowerButton({ isActive, isLoading, showLoadingUI, isExiting, toggleService, onSettingsClick }) {
   const settingsRef = useRef(null);
 
   return (
@@ -28,7 +28,7 @@ export function PowerButton({ isActive, isLoading, showLoadingUI, isExiting, isD
         </button>
         
         <div 
-          className={`settings-button ${(isActive || isLoading || isDropdownOpen) ? "hidden" : ""}`} 
+          className={`settings-button ${(isActive || isLoading) ? "hidden" : ""}`} 
           onClick={onSettingsClick}
         >
           <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor">

@@ -17,6 +17,7 @@ pub(crate) fn hidden_command(program: &str) -> Command {
 ///
 /// `WinDivert64.sys` stays locked while the driver is loaded; `sc stop` is best-effort and may
 /// require an elevated process for service installs that run as SYSTEM.
+#[allow(dead_code)]
 pub fn kill_winws() {
     // If zapret was installed as a Windows service, stop it first (releases winws + driver).
     let _ = hidden_command("sc").args(["stop", "zapret"]).status();
@@ -30,8 +31,10 @@ pub fn kill_winws() {
     }
 }
 
+#[allow(dead_code)]
 const DEFENDER_PATH_ENV: &str = "ZAPRET_GUI_DEFENDER_EXCLUSION_PATH";
 
+#[allow(dead_code)]
 pub fn add_to_defender_exclusions(path: &Path) {
     if path.as_os_str().is_empty() {
         return;
