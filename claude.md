@@ -51,10 +51,6 @@ cargo fmt --check
 - Keep React components under 150 lines; functions under 40 lines. Extract early.
 - One logical change per commit. Use Conventional Commits in English.
 
-### Naming
-- React: PascalCase components, `camelCase` hooks (`useSomething`), `SCREAMING_SNAKE_CASE` constants.
-- Rust: PascalCase types, `snake_case` functions/variables, `SCREAMING_SNAKE_CASE` constants.
-
 ### What Not to Touch
 - `src-tauri/resources/zapret-core/` binaries and driver files.
 - `Cargo.toml` lint rules and `tauri.conf.json` without discussion.
@@ -63,6 +59,37 @@ cargo fmt --check
 ### Error Handling
 - **Rust**: Propagate with `?`. Use `thiserror` enums. `unwrap`/`expect` only for impossible invariants; log the error before failing if user-facing.
 - **JS**: Fail gracefully; surface actionable messages to the user. Never swallow errors silently.
+
+## Autonomy Boundaries
+
+**Do without asking:**
+- Bug fixes, refactors, test additions.
+- UI copy changes or small styling tweaks.
+- Adding a new IPC command that follows the existing pattern.
+- Creating a new hook that follows the existing pattern.
+
+**Stop and ask first:**
+- Adding new dependencies (Rust crates or npm packages).
+- Changing Tauri configuration, Cargo lint rules, or build scripts.
+- Modifying zapret-core binaries or driver files.
+- Architectural changes that cross the frontend/backend boundary in a new way.
+- Changes to CI/CD workflows, release process, or signing.
+- Any `unsafe` code (already forbidden by lint, but still — ask).
+
+## Patterns
+
+**Adding an IPC command:**
+1. Define the handler in `src-tauri/src/commands.rs` using `#[tauri::command]`.
+2. Register it in `src-tauri/src/lib.rs` inside `tauri::generate_handler![...]`.
+3. Call it from the frontend via `invoke("command_name", { args })`.
+
+Example: see `commands::get_status` → frontend `invoke("get_status")` in `src/hooks/useService.js`.
+
+**Adding a React hook:**
+- Keep hooks focused on one concern.
+- Use `usePersistedState` for settings that should survive reloads.
+- Use `useServiceUI` for UI state derived from service state.
+- See `src/hooks/usePersistedState.js` for localStorage-backed state and `src/hooks/useService.js` for coordinating with the Rust backend.
 
 ## Project Context
 
@@ -81,4 +108,3 @@ Zapret-GUI is a one-click Windows wrapper around `zapret-core` to bypass DPI blo
 - `docs/ARCHITECTURE.md` — full architecture overview and data flow.
 - `docs/STYLE_GUIDE.md` — detailed JS and Rust style rules.
 - `docs/PROJECT_RULES.md` — versioning, branching, commit conventions, security.
-- `docs/CONTRIBUTING.md` — setup, local dev, and PR checklist.
